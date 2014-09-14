@@ -33,45 +33,51 @@ class nodevisitor(object):
         if k == 'operator':
             self._visitnode(n, n.op)
         elif k == 'list':
-            self._visitnode(n, n.parts)
-            for child in n.parts:
-                self.visit(child)
+            dochild = self._visitnode(n, n.parts)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         elif k == 'reservedword':
             self._visitnode(n, n.word)
         elif k == 'pipe':
             self._visitnode(n, n.pipe)
         elif k == 'pipeline':
-            self._visitnode(n, n.parts)
-            for child in n.parts:
-                self.visit(child)
+            dochild = self._visitnode(n, n.parts)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         elif k == 'compound':
-            self._visitnode(n, n.list, n.redirects)
-            for child in n.list:
-                self.visit(child)
-            for child in n.redirects:
-                self.visit(child)
+            dochild = self._visitnode(n, n.list, n.redirects)
+            if dochild is None or dochild:
+                for child in n.list:
+                    self.visit(child)
+                for child in n.redirects:
+                    self.visit(child)
         elif k == 'if':
-            self._visitnode(n, n.parts)
-            for child in n.parts:
-                self.visit(child)
+            dochild = self._visitnode(n, n.parts)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         elif k == 'command':
-            r = self._visitnode(n, n.parts)
-            for child in n.parts:
-                self.visit(child)
-            self.visitcommandend(n, n.parts, r)
+            dochild = self._visitnode(n, n.parts)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         elif k == 'redirect':
-            self._visitnode(n, n.input, n.type, n.output)
-            if isinstance(n.output, node):
+            dochild = self._visitnode(n, n.input, n.type, n.output)
+            if (dochild is None or dochild) and isinstance(n.output, node):
                 self.visit(n.output)
         elif k == 'word':
-            self._visitnode(n, n.word)
-            for child in n.parts:
-                self.visit(child)
+            dochild = self._visitnode(n, n.word)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         elif k in ('variable', 'parameter', 'tilde'):
             self._visitnode(n, n.value)
         elif k in ('commandsubstitution', 'processsubstitution'):
-            self._visitnode(n, n.command)
-            self.visit(n.command)
+            dochild = self._visitnode(n, n.command)
+            if dochild is None or dochild:
+                self.visit(n.command)
         else:
             raise ValueError('unknown node kind %r' % k)
     def visitnode(self, n):
@@ -89,9 +95,6 @@ class nodevisitor(object):
     def visitif(self, node, parts):
         pass
     def visitcommand(self, n, parts):
-        pass
-    def visitcommandend(self, n, parts, r):
-        # r is the return value of the corresponding call to visitcommand
         pass
     def visitword(self, n, word):
         pass
