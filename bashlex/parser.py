@@ -1,3 +1,5 @@
+import os
+
 from bashlex import yacc, tokenizer, state, ast, subst, flags, errors
 
 def _partsspan(parts):
@@ -447,7 +449,10 @@ def p_error(p):
                                   p.lexer._shell_input_line, p.lexpos)
 
 # XXX ruins thread safety?
-p = yacc.yacc()
+p = yacc.yacc(tabmodule='bashlex.parsetab',
+              outputdir=os.path.dirname(__file__),
+              debug=False)
+
 p.action[45]['RIGHT_PAREN'] = -155
 p.action[11]['RIGHT_PAREN'] = -148
 
