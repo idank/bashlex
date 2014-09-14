@@ -252,7 +252,7 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
                 sindex[0] = i
                 istring += string[sindex[0]:i]
 
-        elif c == '$':
+        elif c == '$' and len(string) > 1:
             tindex = sindex[0]
             node, sindex[0] = _paramexpand(tok, string, sindex[0])
             if node:
