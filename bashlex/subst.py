@@ -291,7 +291,7 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
                         istring += string[tindex:sindex[0]]
 
         elif c == '\\':
-            istring += string[sindex[0]:sindex[0]+2]
+            istring += string[sindex[0]+1:sindex[0]+2]
             sindex[0] += 2
         elif c == '"':
             sindex[0] += 1

@@ -630,3 +630,10 @@ class test_parser(unittest.TestCase):
                   ]),
                   wordnode("$(a \"b\" 'c')", "'$(a \"b\" 'c')'")
                 ))
+
+    def test_escape_not_part_of_word(self):
+        s = "a \\;"
+        self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a'),
+                  wordnode(';', '\\;')))
