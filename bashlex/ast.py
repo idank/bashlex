@@ -67,15 +67,18 @@ class nodevisitor(object):
                 for child in n.parts:
                     self.visit(child)
         elif k == 'redirect':
-            dochild = self._visitnode(n, n.input, n.type, n.output)
-            if (dochild is None or dochild) and isinstance(n.output, node):
-                self.visit(n.output)
+            dochild = self._visitnode(n, n.input, n.type, n.output, n.heredoc)
+            if dochild is None or dochild:
+                if isinstance(n.output, node):
+                    self.visit(n.output)
+                if n.heredoc:
+                    self.visit(n.heredoc)
         elif k == 'word':
             dochild = self._visitnode(n, n.word)
             if dochild is None or dochild:
                 for child in n.parts:
                     self.visit(child)
-        elif k in ('variable', 'parameter', 'tilde'):
+        elif k in ('variable', 'parameter', 'tilde', 'heredoc'):
             self._visitnode(n, n.value)
         elif k in ('commandsubstitution', 'processsubstitution'):
             dochild = self._visitnode(n, n.command)
@@ -109,7 +112,9 @@ class nodevisitor(object):
         pass
     def visittilde(self, n, value):
         pass
-    def visitredirect(self, n, input, type, output):
+    def visitredirect(self, n, input, type, output, heredoc):
+        pass
+    def visitheredoc(self, n, value):
         pass
     def visitprocesssubstitution(self, n, command):
         pass
@@ -164,3 +169,12 @@ def findfirstkind(parts, kind):
         if node.kind == kind:
             return i
     return -1
+
+class posconverter(nodevisitor):
+    def __init__(self, string):
+        self.string = string
+
+    def visitnode(self, node):
+        assert hasattr(node, 'pos'), 'node %r is missing pos attr' % node
+        start, end = node.__dict__.pop('pos')
+        node.s = self.string[start:end]

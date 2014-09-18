@@ -1,6 +1,6 @@
 import re, collections, enum
 
-from bashlex import flags, shutils, utils, errors
+from bashlex import flags, shutils, utils, errors, heredoc
 
 sh_syntaxtab = collections.defaultdict(set)
 
@@ -195,7 +195,7 @@ class token(object):
 eoftoken = token(tokentype.EOF, None)
 
 class tokenizer(object):
-    def __init__(self, s, parserstate, eoftoken=None,
+    def __init__(self, s, parserstate, strictmode=True, eoftoken=None,
                  lastreadtoken=None, tokenbeforethat=None, twotokensago=None):
         self._shell_eof_token = eoftoken
         self._shell_input_line = s
@@ -216,8 +216,6 @@ class tokenizer(object):
         # token waiting to be read
         self._token_to_read = None
 
-        self._need_here_doc = False
-
         self._parserstate = parserstate
         self._line_number = 0
         self._open_brace_count = 0
@@ -226,6 +224,13 @@ class tokenizer(object):
 
         # a stack of positions to record the start and end of a token
         self._positions = []
+
+        self._strictmode = strictmode
+
+        # hack: the tokenizer needs access to the stack of redirection
+        # nodes when it reads heredocs. this instance is shared between
+        # the tokenizer and the parser, which also needs it
+        self.redirstack = []
 
     def __iter__(self):
         while True:
@@ -287,8 +292,8 @@ class tokenizer(object):
 
         if character == '\n':
             # XXX 3034 ALIAS
-            if self._need_here_doc:
-                self._gather_here_documents()
+            heredoc.gatherheredocuments(self)
+
             self._parserstate.discard(parserflags.ASSIGNOK)
             return tokentype(character)
 
@@ -1040,3 +1045,41 @@ class tokenizer(object):
         '''record the current index of the tokenizer into the positions stack
         while adding relativeoffset from it'''
         self._positions.append(self._shell_input_line_index - relativeoffset)
+
+    def readline(self, removequotenewline):
+        linebuffer = []
+        passnext = indx = 0
+        while True:
+            c = self._getc()
+            if c is None:
+                if indx == 0:
+                    return None
+                c = '\n'
+
+            if passnext:
+                linebuffer.append(c)
+                indx += 1
+                passnext = False
+            elif c == '\\' and removequotenewline:
+                peekc = self._getc()
+                if peekc == '\n':
+                    self._line_number += 1
+                    continue
+                else:
+                    self._ungetc(peekc)
+                    passnext = True
+                    linebuffer.append(c)
+                    indx += 1
+            else:
+                linebuffer.append(c)
+                indx += 1
+
+            if c == '\n':
+                return ''.join(linebuffer)
+
+    def _peekc(self, *args):
+        peek_char = self._getc(*args)
+        # only unget if we actually read something
+        if peek_char is not None:
+            self._ungetc(peek_char)
+        return peek_char

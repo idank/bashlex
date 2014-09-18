@@ -1,6 +1,6 @@
 import os
 
-from bashlex import yacc, tokenizer, state, ast, subst, flags, errors
+from bashlex import yacc, tokenizer, state, ast, subst, flags, errors, heredoc
 
 def _partsspan(parts):
     return parts[0].pos[0], parts[-1].pos[1]
@@ -18,6 +18,9 @@ def p_inputunit(p):
                  | error NEWLINE
                  | EOF'''
     # XXX
+    if p.lexer._parserstate & flags.parser.CMDSUBST:
+        p.lexer._parserstate.add(flags.parser.EOFTOKEN)
+
     if isinstance(p[1], ast.node):
         p[0] = p[1]
 
@@ -29,6 +32,30 @@ def p_word_list(p):
     else:
         p[0] = p[1]
         p[0].append(ast.node(kind='word', word=p[2], pos=p.lexspan(2)))
+
+def p_redirection_heredoc(p):
+    '''redirection : LESS_LESS WORD
+                   | NUMBER LESS_LESS WORD
+                   | REDIR_WORD LESS_LESS WORD
+                   | LESS_LESS_MINUS WORD
+                   | NUMBER LESS_LESS_MINUS WORD
+                   | REDIR_WORD LESS_LESS_MINUS WORD'''
+    parserobj = p.context
+    assert isinstance(parserobj, _parser)
+
+    output = ast.node(kind='word', word=p[len(p)-1], parts=[],
+                      pos=p.lexspan(len(p)-1))
+    if len(p) == 3:
+        p[0] = ast.node(kind='redirect', input=None, type=p[1], heredoc=None,
+                        output=output, pos=(p.lexpos(1), p.endlexpos(2)))
+    else:
+        p[0] = ast.node(kind='redirect', input=p[1], type=p[2], heredoc=None,
+                        output=output, pos=(p.lexpos(1), p.endlexpos(3)))
+
+    if p.slice[len(p)-2].ttype == tokenizer.tokentype.LESS_LESS:
+        parserobj.redirstack.append((p[0], False))
+    else:
+        parserobj.redirstack.append((p[0], True))
 
 def p_redirection(p):
     '''redirection : GREATER WORD
@@ -46,12 +73,6 @@ def p_redirection(p):
                    | LESS_GREATER WORD
                    | NUMBER LESS_GREATER WORD
                    | REDIR_WORD LESS_GREATER WORD
-                   | LESS_LESS WORD
-                   | NUMBER LESS_LESS WORD
-                   | REDIR_WORD LESS_LESS WORD
-                   | LESS_LESS_MINUS WORD
-                   | NUMBER LESS_LESS_MINUS WORD
-                   | REDIR_WORD LESS_LESS_MINUS WORD
                    | LESS_LESS_LESS WORD
                    | NUMBER LESS_LESS_LESS WORD
                    | REDIR_WORD LESS_LESS_LESS WORD
@@ -81,16 +102,16 @@ def p_redirection(p):
             output = _expandword(p.lexer, p.slice[2])
             assert len(output) == 1
             output = output[0]
-        p[0] = ast.node(kind='redirect', input=None, type=p[1],
-                    output=output, pos=(p.lexpos(1), p.endlexpos(2)))
+        p[0] = ast.node(kind='redirect', input=None, type=p[1], heredoc=None,
+                        output=output, pos=(p.lexpos(1), p.endlexpos(2)))
     else:
         output = p[3]
         if p.slice[3].ttype == tokenizer.tokentype.WORD:
             output = _expandword(p.lexer, p.slice[3])
             assert len(output) == 1
             output = output[0]
-        p[0] = ast.node(kind='redirect', input=p[1], type=p[2],
-                    output=output, pos=(p.lexpos(1), p.endlexpos(3)))
+        p[0] = ast.node(kind='redirect', input=p[1], type=p[2], heredoc=None,
+                        output=output, pos=(p.lexpos(1), p.endlexpos(3)))
 
 def _expandword(tokenizer, tokenword):
     quoted = bool(tokenword.flags & flags.word.QUOTED)
@@ -368,6 +389,9 @@ def p_simple_list(p):
     '''simple_list : simple_list1
                    | simple_list1 AMPERSAND
                    | simple_list1 SEMICOLON'''
+    tok = p.lexer
+    heredoc.gatherheredocuments(tok)
+
     if len(p) == 3 or len(p[1]) > 1:
         parts = p[1]
         if len(p) == 3:
@@ -440,6 +464,8 @@ def p_empty(p):
     pass
 
 def p_error(p):
+    assert isinstance(p, tokenizer.token)
+
     if p.ttype == tokenizer.tokentype.EOF:
         raise errors.ParsingError('unexpected EOF',
                                   p.lexer._shell_input_line,
@@ -456,22 +482,42 @@ p = yacc.yacc(tabmodule='bashlex.parsetab',
 p.action[45]['RIGHT_PAREN'] = -155
 p.action[11]['RIGHT_PAREN'] = -148
 
-def parse(s, convertpos=False, tokenizerargs=None):
-    if tokenizerargs is None:
-        tokenizerargs = {}
-    if 'parserstate' not in tokenizerargs:
-        tokenizerargs['parserstate'] = state.parserstate()
-    tok = tokenizer.tokenizer(s, **tokenizerargs)
-    try:
-        tree = p.parse(lexer=tok)
-    except tokenizer.MatchedPairError, e:
-        raise errors.ParsingError(e.args[1], s, len(s) - 1)
+def parse(s, strictmode=True, convertpos=False):
+    p = _parser(s, strictmode=strictmode, convertpos=convertpos)
+    return p.parse()
 
-    if convertpos:
-        class v(ast.nodevisitor):
-            def visitnode(self, node):
-                assert hasattr(node, 'pos'), 'node %r is missing pos attr' % node
-                start, end = node.__dict__.pop('pos')
-                node.s = s[start:end]
-        v().visit(tree)
-    return tree
+class _parser(object):
+    '''
+    this class is mainly used to provide context to the productions
+    when we're in the middle of parsing. as a hack, we shove it into the
+    YaccProduction context attribute to make it accessible.
+    '''
+    def __init__(self, s, strictmode=True, convertpos=False, tokenizerargs=None):
+        # when strictmode is set to False, we will:
+        #
+        # - skip reading a heredoc if we're at the end of the input
+
+        self.s = s
+        self._strictmode = strictmode
+        self._convertpos = convertpos
+
+        if tokenizerargs is None:
+            tokenizerargs = {}
+        self.parserstate = tokenizerargs.pop('parserstate', state.parserstate())
+
+        self.tok = tokenizer.tokenizer(s,
+                                       parserstate=self.parserstate,
+                                       strictmode=strictmode,
+                                       **tokenizerargs)
+
+        self.redirstack = self.tok.redirstack
+
+    def parse(self):
+        try:
+            tree = p.parse(lexer=self.tok, context=self)
+        except tokenizer.MatchedPairError, e:
+            raise errors.ParsingError(e.args[1], self.s, len(self.s) - 1)
+
+        if self._convertpos:
+            ast.posconverter(self.s).visit(tree)
+        return tree

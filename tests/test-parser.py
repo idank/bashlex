@@ -23,11 +23,17 @@ def parameternode(value, s):
 def variablenode(value, s):
     return ast.node(kind='variable', value=value, s=s)
 
+def heredocnode(value, s=None):
+    if s is None:
+        s = value
+    return ast.node(kind='heredoc', value=value, s=s)
+
 def tildenode(value, s):
     return ast.node(kind='tilde', value=value, s=s)
 
-def redirectnode(s, input, type, output):
-    return ast.node(kind='redirect', input=input, type=type, output=output, s=s)
+def redirectnode(s, input, type, output, heredoc=None):
+    return ast.node(kind='redirect', input=input, type=type, output=output,
+                    heredoc=heredoc, s=s)
 
 def pipenode(pipe, s):
     return ast.node(kind='pipe', pipe=pipe, s=s)
@@ -69,8 +75,8 @@ def ifnode(s, *parts):
     return ast.node(kind='if', parts=list(parts), s=s)
 
 class test_parser(unittest.TestCase):
-    def assertASTEquals(self, s, expected):
-        result = parse(s)
+    def assertASTEquals(self, s, expected, strictmode=True):
+        result = parse(s, strictmode=strictmode)
 
         msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
         self.assertEquals(result, expected, msg)
@@ -471,10 +477,10 @@ class test_parser(unittest.TestCase):
 
     def test_invalid_redirect(self):
         s = 'a 2>'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected EOF.*position 4", parse, s)
+        self.assertRaisesRegexp(errors.ParsingError, r"unexpected token '\\n'.*position 4", parse, s)
 
         s = 'ssh -p 2222 <user>@<host>'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected EOF.*position %d" % len(s), parse, s)
+        self.assertRaisesRegexp(errors.ParsingError, r"unexpected token '\\n'.*position %d" % len(s), parse, s)
 
     def test_if(self):
         s = 'if foo; then bar; fi'
@@ -637,3 +643,43 @@ class test_parser(unittest.TestCase):
                 commandnode(s,
                   wordnode('a'),
                   wordnode(';', '\\;')))
+
+    def test_heredoc_spec(self):
+        for redirect_kind in ('<<', '<<<'):
+            s = 'a %sEOF | b' % redirect_kind
+            self.assertASTEquals(s,
+                  pipelinenode(s,
+                    commandnode('a %sEOF' % redirect_kind,
+                      wordnode('a', 'a'),
+                      redirectnode('%sEOF' % redirect_kind, None,
+                                   redirect_kind, wordnode('EOF'))),
+                    pipenode('|', '|'),
+                    commandnode('b', wordnode('b', 'b'))),
+                  False)
+
+        s = 'a <<-b'
+        self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a', 'a'),
+                  redirectnode('<<-b', None, '<<-', wordnode('b'))),
+                False)
+
+        s = 'a <<<<b'
+        self.assertRaisesRegexp(errors.ParsingError, "unexpected token '<'.*5", parse, s)
+
+    def test_heredoc_with_actual_doc(self):
+        doc = 'foo\nbar\nEOF'
+        s = '''a <<EOF
+%s''' % doc
+
+        self.assertASTEquals(s,
+                commandnode('a <<EOF',
+                  wordnode('a'),
+                  redirectnode('<<EOF', None, '<<', wordnode('EOF'),
+                      heredocnode(doc))
+                ))
+
+        s = 'a <<EOF\nb'
+        self.assertRaisesRegexp(errors.ParsingError,
+                                "delimited by end-of-file \\(wanted 'EOF'",
+                                parse, s)

@@ -12,7 +12,8 @@ def _recursiveparse(tok, base, sindex, tokenizerargs=None):
                          'twotokensago' : tok._two_tokens_ago}
 
     string = base[sindex:]
-    node = parser.parse(string, tokenizerargs=tokenizerargs)
+    p = parser._parser(string, tokenizerargs=tokenizerargs)
+    node = p.parse()
 
     endp = node.pos[1]
     _adjustpositions(node, sindex, len(base))
