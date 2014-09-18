@@ -10,6 +10,20 @@ tokenize = lambda s: list(tokenizer.tokenizer(s, state.parserstate()))
 hasdollarset = set([flags.word.HASDOLLAR])
 
 class test_tokenizer(unittest.TestCase):
+    def assertTokens(self, s, tokens):
+        result = tokenize(s)
+
+        # pop the last token if it's a new line since that gets appended
+        # to the input string by default and we don't really care about
+        # that here
+        if result[-1].value == '\n':
+            result.pop()
+
+        self.assertEquals(result, tokens)
+
+        for t in tokens:
+            self.assertEquals(str(t.value), s[t.lexpos:t.endlexpos])
+
     def test_simple(self):
         s = 'a b'
         self.assertTokens(s, [
@@ -49,7 +63,7 @@ class test_tokenizer(unittest.TestCase):
 
     def test_comment(self):
         s = '|# foo bar\n'
-        self.assertEquals(tokenize(s), [
+        self.assertTokens(s, [
                           t(tt.BAR, '|', [0, 1]), t(tt.NEWLINE, '\n', [10, 11])])
 
     def test_shellquote(self):
@@ -93,12 +107,6 @@ class test_tokenizer(unittest.TestCase):
         self.assertTokens(s, [
                           t(tt.WORD, 'a', [0, 1]),
                           t(tt.WORD, '$$', [2, 4], hasdollarset)])
-
-    def assertTokens(self, s, tokens):
-        self.assertEquals(tokenize(s), tokens)
-        for t in tokens:
-            if t.value:
-                self.assertEquals(str(t.value), s[t.lexpos:t.endlexpos])
 
     def test_comsub(self):
         s = 'a $(b)'
@@ -229,16 +237,16 @@ class test_tokenizer(unittest.TestCase):
 
     def test_assignment(self):
         s = 'a=b'
-        self.assertEquals(tokenize(s), [
+        self.assertTokens(s, [
                           t(tt.ASSIGNMENT_WORD, 'a=b', [0, 3],
                             flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
 
     def test_heredoc(self):
-        return
-
         s = 'a <<EOF'
-        self.assertEquals(tokenize(s), [
-                          t(tt.WORD, 'a')])
+        self.assertTokens(s, [
+                          t(tt.WORD, 'a', [0, 1]),
+                          t(tt.LESS_LESS, '<<', [2, 4]),
+                          t(tt.WORD, 'EOF', [4, 7])])
 
     def test_foo(self):
         s = 'c)'
@@ -259,13 +267,14 @@ class test_tokenizer(unittest.TestCase):
 
     def test_quote_error(self):
         s = "a 'b"
-        self.assertRaisesRegexp(errors.ParsingError, "No closing quotation.*position 2", tokenize, s)
+        msg = "EOF.*matching \"'\" \\(position 5"
+        self.assertRaisesRegexp(errors.ParsingError, msg, tokenize, s)
 
     def test_escape_error(self):
-        return
+        return # TODO
 
         s = "a b\\"
-        print tokenize(s)
+
         self.assertRaisesRegexp(errors.ParsingError, "No escaped character.*position 2", tokenize, s)
 
     def test_tokenize(self):

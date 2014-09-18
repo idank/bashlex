@@ -1,5 +1,6 @@
 import re, collections, enum
-import flags, shutils, utils
+
+from bashlex import flags, shutils, utils, errors
 
 sh_syntaxtab = collections.defaultdict(set)
 
@@ -77,7 +78,7 @@ class tokentype(enum.Enum):
     BAR_AND = '|&'
     LEFT_CURLY = 47
     RIGHT_CURLY = 48
-    EOF = 49
+    EOF = '$end'
     LEFT_PAREN = '('
     RIGHT_PAREN = ')'
     BAR = '|'
@@ -125,8 +126,12 @@ valid_reserved_first_command = {
     "coproc" : tokentype.COPROC
 }
 
-class MatchedPairError(Exception):
-    pass
+class MatchedPairError(errors.ParsingError):
+    def __init__(self, startline, message, tokenizer):
+        # TODO use startline?
+        super(MatchedPairError, self).__init__(message,
+                                               tokenizer._shell_input_line,
+                                               tokenizer._shell_input_line_index)
 
 wordflags = flags.word
 parserflags = flags.parser
@@ -140,6 +145,7 @@ class token(object):
             flags = set()
 
         self.ttype = type_
+
         self.value = value
         if pos is not None:
             self.lexpos = pos[0]
@@ -153,7 +159,11 @@ class token(object):
     @property
     def type(self):
         if self.ttype:
-            return self.ttype.name
+            # make yacc see our EOF token as its own special one $end
+            if self.ttype == tokentype.EOF:
+                return '$end'
+            else:
+                return self.ttype.name
 
     def __nonzero__(self):
         return not (self.ttype is None and self.value is None)
@@ -181,6 +191,8 @@ class token(object):
 
     def nopos(self):
         return self.__class__(self.ttype, self.value, flags=self.flags)
+
+eoftoken = token(tokentype.EOF, None)
 
 class tokenizer(object):
     def __init__(self, s, parserstate, eoftoken=None,
@@ -218,27 +230,22 @@ class tokenizer(object):
     def __iter__(self):
         while True:
             t = self.token()
-            if t is None or t.ttype == tokentype.EOF:
+            if t is eoftoken:
                 break
             yield t
 
     def _createtoken(self, type_, value, flags=None):
         '''create a token with position information'''
         pos = None
-        if type_ != tokentype.EOF:
-            assert len(self._positions) >= 2, (type_, value)
-            p2 = self._positions.pop()
-            p1 = self._positions.pop()
-            pos = [p1, p2]
+        assert len(self._positions) >= 2, (type_, value)
+        p2 = self._positions.pop()
+        p1 = self._positions.pop()
+        pos = [p1, p2]
         return token(type_, value, pos, flags)
 
     def token(self):
         self._two_tokens_ago, self._token_before_that, self._last_read_token = \
             self._token_before_that, self._last_read_token, self._current_token
-
-        # XXX
-        if self._last_read_token.ttype == tokentype.EOF:
-            return
 
         self._current_token = self._readtoken()
         if isinstance(self._current_token, tokentype):
@@ -248,7 +255,7 @@ class tokenizer(object):
 
         if (self._parserstate & parserflags.EOFTOKEN and
             self._current_token.ttype == self._shell_eof_token):
-            self._current_token = token(tokentype.EOF, None)
+            self._current_token = eoftoken
             # XXX 2626
         self._parserstate.discard(parserflags.EOFTOKEN)
 
@@ -266,11 +273,10 @@ class tokenizer(object):
         # 2989 COND_COMMAND
         character = self._getc(True)
         while character is not None and _shellblank(character):
-            atewhitespace = True
             character = self._getc(True)
 
         if character is None:
-            return tokentype.EOF
+            return eoftoken
 
         if character == '#':
             self._discard_until('\n')
@@ -603,7 +609,7 @@ class tokenizer(object):
             c = self._getc(doublequotes != "'" and not insidecomment and not passnextchar)
 
             if c is None:
-                raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close)
+                raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 
             # 3571
             if c == '\n':
@@ -692,7 +698,7 @@ class tokenizer(object):
                     lexrwlen = 0
                     continue
                 elif c is None:
-                    raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close) # pragma: no coverage
+                    raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self) # pragma: no coverage
                 else:
                     ret = ret[:-1]
                     self._ungetc(peekc)
@@ -724,12 +730,12 @@ class tokenizer(object):
                 ret += c
                 peekc = self._getc(True)
                 if peekc is None:
-                    raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close)
+                    raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
                 if peekc == c:
                     ret += peekc
                     peekc = self._getc(True)
                     if peekc is None:
-                        raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close)
+                        raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
                     elif peekc == '-':
                         ret += peekc
                         stripdoc = True
@@ -848,7 +854,7 @@ class tokenizer(object):
         while count:
             c = self._getc(doublequotes != "'" and not passnextchar)
             if c is None:
-                raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close)
+                raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 
             # 3285
             # if c == '\n':
@@ -988,8 +994,8 @@ class tokenizer(object):
             return self._dstack[-1]
 
     def _ungetc(self, c):
-        if (self._shell_input_line and self._shell_input_line_index):
-            #and self._shell_input_line_index < len(self._shell_input_line)):
+        if (self._shell_input_line and self._shell_input_line_index
+            and self._shell_input_line_index <= len(self._shell_input_line)):
             self._shell_input_line_index -= 1
         else:
             self._eol_ungetc_lookahead = c
