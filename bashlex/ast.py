@@ -9,6 +9,9 @@ class node(object):
         assert 'kind' in kwargs
         self.__dict__.update(kwargs)
 
+    def dump(self, indent='  '):
+        return _dump(self, indent)
+
     def __repr__(self):
         chunks = []
         d = dict(self.__dict__)
@@ -113,7 +116,7 @@ class nodevisitor(object):
     def visitcommandsubstitution(self, n, command):
         pass
 
-def dump(tree, indent='  '):
+def _dump(tree, indent='  '):
     def _format(n, level=0):
         if isinstance(n, node):
             d = dict(n.__dict__)

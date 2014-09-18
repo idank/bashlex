@@ -72,7 +72,7 @@ class test_parser(unittest.TestCase):
     def assertASTEquals(self, s, expected):
         result = parse(s)
 
-        msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, ast.dump(result), ast.dump(expected))
+        msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
         self.assertEquals(result, expected, msg)
 
     def test_command(self):
