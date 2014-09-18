@@ -308,7 +308,7 @@ class LRParser:
 
         # Set up the lexer and parser objects on pslice
         pslice.lexer = lexer
-        pslice.parser = self
+        # pslice.parser = self._parser
         pslice.context = context
 
         # If input was supplied, pass to lexer
@@ -524,7 +524,8 @@ class LRParser:
                     self.errorok = 0
                     errtoken = lookahead
                     if errtoken.type == "$end":
-                        errtoken = None               # End of file!
+                        pass
+                        #errtoken = None               # End of file!
                     if self.errorfunc:
                         global errok,token,restart
                         errok = self.errok        # Set some special functions available in error recovery
@@ -626,7 +627,7 @@ class LRParser:
         
         # Set up the lexer and parser objects on pslice
         pslice.lexer = lexer
-        pslice.parser = self
+        #pslice.parser = self
         pslice.context = context
 
         # If input was supplied, pass to lexer
@@ -800,7 +801,8 @@ class LRParser:
                     self.errorok = 0
                     errtoken = lookahead
                     if errtoken.type == '$end':
-                        errtoken = None               # End of file!
+                        pass
+                        #errtoken = None               # End of file!
                     if self.errorfunc:
                         global errok,token,restart
                         errok = self.errok        # Set some special functions available in error recovery
@@ -901,7 +903,7 @@ class LRParser:
         
         # Set up the lexer and parser objects on pslice
         pslice.lexer = lexer
-        pslice.parser = self
+        #pslice.parser = self
         pslice.context = context
 
         # If input was supplied, pass to lexer
@@ -1062,7 +1064,8 @@ class LRParser:
                     self.errorok = 0
                     errtoken = lookahead
                     if errtoken.type == '$end':
-                        errtoken = None               # End of file!
+                        pass
+                        #errtoken = None               # End of file!
                     if self.errorfunc:
                         global errok,token,restart
                         errok = self.errok        # Set some special functions available in error recovery
