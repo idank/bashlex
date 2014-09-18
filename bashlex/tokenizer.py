@@ -14,7 +14,7 @@ _addsyntax('$<>', 'exp')
 _addsyntax("()<>;&| \t\n", 'break')
 
 def _shellblank(c):
-    return c.isspace()
+    return c in ' \t'
 
 def _shellmeta(c):
     return 'meta' in sh_syntaxtab[c]
