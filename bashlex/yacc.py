@@ -3065,11 +3065,7 @@ class ParserReflect(object):
 def yacc(method='LALR', debug=yaccdebug, module=None, tabmodule=tab_module, start=None, 
          check_recursion=1, optimize=0, write_tables=1, debugfile=debug_file,outputdir='',
          debuglog=None, errorlog = None, picklefile=None):
-
-    global parse                 # Reference to the parsing method of the last built parser
-
     # If pickling is enabled, table files are not created
-
     if picklefile:
         write_tables = 0
 
@@ -3104,7 +3100,6 @@ def yacc(method='LALR', debug=yaccdebug, module=None, tabmodule=tab_module, star
             try:
                 lr.bind_callables(pinfo.pdict)
                 parser = LRParser(lr,pinfo.error_func)
-                parse = parser.parse
                 return parser
             except Exception:
                 e = sys.exc_info()[1]
@@ -3301,6 +3296,4 @@ def yacc(method='LALR', debug=yaccdebug, module=None, tabmodule=tab_module, star
     lr.bind_callables(pinfo.pdict)
     parser = LRParser(lr,pinfo.error_func)
 
-    parse = parser.parse
     return parser
-
