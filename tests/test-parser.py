@@ -683,3 +683,23 @@ class test_parser(unittest.TestCase):
         self.assertRaisesRegexp(errors.ParsingError,
                                 "delimited by end-of-file \\(wanted 'EOF'",
                                 parse, s)
+
+    def test_herestring(self):
+        s = 'a <<<"b\nc"'
+        self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a', 'a'),
+                  redirectnode('<<<"b\nc"', None, '<<<',
+                               wordnode('b\nc', '"b\nc"'))))
+
+        s = 'a <<<$(b)'
+        self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a', 'a'),
+                  redirectnode('<<<$(b)', None, '<<<',
+                               comsubnode('$(b)',
+                                   commandnode('b',
+                                       wordnode('b'))
+                               )
+                              )
+                           ))

@@ -248,6 +248,19 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.LESS_LESS, '<<', [2, 4]),
                           t(tt.WORD, 'EOF', [4, 7])])
 
+    def test_herestring(self):
+        s = 'a <<<foo'
+        self.assertTokens(s, [
+                          t(tt.WORD, 'a', [0, 1]),
+                          t(tt.LESS_LESS_LESS, '<<<', [2, 5]),
+                          t(tt.WORD, 'foo', [5, 8])])
+
+        s = 'a <<<"b\nc"'
+        self.assertTokens(s, [
+                          t(tt.WORD, 'a', [0, 1]),
+                          t(tt.LESS_LESS_LESS, '<<<', [2, 5]),
+                          t(tt.WORD, '"b\nc"', [5, 10], set([flags.word.QUOTED]))])
+
     def test_foo(self):
         s = 'c)'
         self.assertTokens(s, [
