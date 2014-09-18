@@ -1,4 +1,4 @@
-import os
+import os, copy
 
 from bashlex import yacc, tokenizer, state, ast, subst, flags, errors, heredoc
 
@@ -474,13 +474,12 @@ def p_error(p):
         raise errors.ParsingError('unexpected token %r' % p.value,
                                   p.lexer._shell_input_line, p.lexpos)
 
-# XXX ruins thread safety?
-p = yacc.yacc(tabmodule='bashlex.parsetab',
+yaccparser = yacc.yacc(tabmodule='bashlex.parsetab',
               outputdir=os.path.dirname(__file__),
               debug=False)
 
-p.action[45]['RIGHT_PAREN'] = -155
-p.action[11]['RIGHT_PAREN'] = -148
+yaccparser.action[45]['RIGHT_PAREN'] = -155
+yaccparser.action[11]['RIGHT_PAREN'] = -148
 
 def parse(s, strictmode=True, convertpos=False):
     p = _parser(s, strictmode=strictmode, convertpos=convertpos)
@@ -514,7 +513,11 @@ class _parser(object):
 
     def parse(self):
         try:
-            tree = p.parse(lexer=self.tok, context=self)
+            # yacc.yacc returns a parser object that is not reentrant, it has
+            # some mutable state. we make a shallow copy of it so no
+            # state spills over to the next call to parse on it
+            theparser = copy.copy(yaccparser)
+            tree = theparser.parse(lexer=self.tok, context=self)
         except tokenizer.MatchedPairError, e:
             raise errors.ParsingError(e.args[1], self.s, len(self.s) - 1)
 

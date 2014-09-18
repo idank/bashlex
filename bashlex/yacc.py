@@ -86,6 +86,8 @@ pickle_protocol = 0            # Protocol to use when writing pickle files
 
 import re, types, sys, os.path
 
+from bashlex import utils
+
 # Compatibility function for python 2.6/3.0
 if sys.version_info[0] < 3:
     def func_code(f):
@@ -247,9 +249,10 @@ class YaccProduction:
 
 class LRParser:
     def __init__(self,lrtab,errorf):
-        self.productions = lrtab.lr_productions
-        self.action      = lrtab.lr_action
-        self.goto        = lrtab.lr_goto
+        # make sure these are immutable
+        self.productions = tuple(lrtab.lr_productions)
+        self.action      = utils.frozendict(lrtab.lr_action)
+        self.goto        = utils.frozendict(lrtab.lr_goto)
         self.errorfunc   = errorf
 
     def errok(self):
