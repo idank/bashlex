@@ -86,7 +86,11 @@ class nodevisitor(object):
                 self.visit(n.command)
         else:
             raise ValueError('unknown node kind %r' % k)
+        self.visitnodeend(n)
+
     def visitnode(self, n):
+        pass
+    def visitnodeend(self, n):
         pass
     def visitoperator(self, n, op):
         pass
