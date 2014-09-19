@@ -64,7 +64,7 @@ class test_tokenizer(unittest.TestCase):
     def test_comment(self):
         s = '|# foo bar\n'
         self.assertTokens(s, [
-                          t(tt.BAR, '|', [0, 1]), t(tt.NEWLINE, '\n', [10, 11])])
+                          t(tt.BAR, '|', [0, 1])])
 
     def test_shellquote(self):
         s = '"foo"'

@@ -199,7 +199,7 @@ class tokenizer(object):
                  lastreadtoken=None, tokenbeforethat=None, twotokensago=None):
         self._shell_eof_token = eoftoken
         self._shell_input_line = s
-        if eoftoken is None or eoftoken.ttype != tokentype.EOF:
+        if self._shell_input_line[-1] != '\n':
             self._shell_input_line += '\n' # 2431
         self._shell_input_line_index = 0
         # self._shell_input_line_terminator = None
