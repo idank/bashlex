@@ -202,7 +202,7 @@ class tokenizer(object):
         if eoftoken is None or eoftoken.ttype != tokentype.EOF:
             self._shell_input_line += '\n' # 2431
         self._shell_input_line_index = 0
-        self._shell_input_line_terminator = None
+        # self._shell_input_line_terminator = None
         self._two_tokens_ago = twotokensago or token(None, None)
         self._token_before_that = tokenbeforethat or token(None, None)
         self._last_read_token = lastreadtoken or token(None, None)
@@ -1026,13 +1026,13 @@ class tokenizer(object):
             else:
                 return c
 
-            if c is None and self._shell_input_line_terminator is None:
-                if self._shell_input_line_index != 0:
-                    return '\n'
-                else:
-                    return None
+            #if c is None and self._shell_input_line_terminator is None:
+            #    if self._shell_input_line_index != 0:
+            #        return '\n'
+            #    else:
+            #        return None
 
-            return c
+            #return c
 
     def _discard_until(self, character):
         c = self._getc(False)
