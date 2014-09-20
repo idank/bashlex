@@ -37,7 +37,19 @@ Installation:
     ]),
   ])
 
-The examples/ directory contains a few simple scripts that demonstrate how to
+It is also possible to only use the tokenizer and get similar behaviour to
+shlex.split, but with support for more complex constructs such as command
+substitutions:
+
+  >>> bashlex.split('cat <(echo "a $(echo b)") | tee'')
+  ['cat', '<(echo "a $(echo b)")', '|', 'tee']
+
+..compared to shlex:
+
+  >>> shlex.split('cat <(echo "a $(echo b)") | tee')
+  ['cat', '<(echo', 'a $(echo b))', '|', 'tee']
+
+The examples/ directory contains a sample script that demonstrate how to
 traverse the ast to do more complicated things.
 
 ## Limitations

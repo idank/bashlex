@@ -1,6 +1,6 @@
 import re, collections, enum
 
-from bashlex import flags, shutils, utils, errors, heredoc
+from bashlex import flags, shutils, utils, errors, heredoc, state
 
 sh_syntaxtab = collections.defaultdict(set)
 
@@ -199,8 +199,10 @@ class tokenizer(object):
                  lastreadtoken=None, tokenbeforethat=None, twotokensago=None):
         self._shell_eof_token = eoftoken
         self._shell_input_line = s
+        self._added_newline = False
         if self._shell_input_line[-1] != '\n':
             self._shell_input_line += '\n' # 2431
+            self._added_newline = True
         self._shell_input_line_index = 0
         # self._shell_input_line_terminator = None
         self._two_tokens_ago = twotokensago or token(None, None)
@@ -235,7 +237,10 @@ class tokenizer(object):
     def __iter__(self):
         while True:
             t = self.token()
-            if t is eoftoken:
+            # we're finished when we see the eoftoken OR when we added a newline
+            # to the input and we're there now
+            if t is eoftoken or (self._added_newline and
+                                 t.lexpos + 1 == len(self._shell_input_line)):
                 break
             yield t
 
@@ -1083,3 +1088,27 @@ class tokenizer(object):
         if peek_char is not None:
             self._ungetc(peek_char)
         return peek_char
+
+def split(s):
+    '''a utility function that mimics shlex.split but handles more
+    complex shell constructs such as command substitutions inside words
+
+    >>> list(split('a b"c"\\'d\\''))
+    ['a', 'bcd']
+    >>> list(split('a "b $(c)" $(d) \\'$(e)\\''))
+    ['a', 'b $(c)', '$(d)', '$(e)']
+    >>> list(split('a b\\n'))
+    ['a', 'b', '\\n']
+    '''
+    from bashlex import subst
+
+    tok = tokenizer(s, state.parserstate())
+    for t in tok:
+        if t.ttype == tokentype.WORD:
+            quoted = bool(t.flags & flags.word.QUOTED)
+            doublequoted = quoted and t.value[0] == '"'
+            parts, expandedword = subst._expandwordinternal(tok, t, 0,
+                                                            doublequoted, 0, 0)
+            yield expandedword
+        else:
+            yield s[t.lexpos:t.endlexpos]
