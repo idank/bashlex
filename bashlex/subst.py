@@ -315,10 +315,18 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
             if sindex[0] == 0 and string[-1] == "'":
                 return [], string[1:-1]
 
-            # go past the closing '
-            tindex = sindex[0]
-            sindex[0] = string.find("'", sindex[0]) + 1
-            istring += string[tindex:sindex[0]]
+            # check if we're inside double quotes
+            if not qdoublequotes:
+                # look for the closing ', we know we have one or otherwise
+                # this wouldn't tokenize due to unmatched '
+                tindex = sindex[0]
+                sindex[0] = string.find("'", sindex[0]) + 1
+
+                istring += string[tindex+1:sindex[0]-1]
+            else:
+                # this is a single quote inside double quotes, add it
+                istring += c
+                sindex[0] += 1
         else:
             istring += string[sindex[0]:sindex[0]+1]
             sindex[0] += 1

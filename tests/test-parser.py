@@ -607,10 +607,15 @@ class test_parser(unittest.TestCase):
                   wordnode(' b', "' b'"),
                   wordnode("'c'", "\"'c'\"")))
 
-        s = '"a\'b\'"'
+        s = '"a\'b"'
         self.assertASTEquals(s,
                 commandnode(s,
-                  wordnode("a'b'", s)))
+                  wordnode("a'b", s)))
+
+        s = 'a"b"\'c\'d'
+        self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode("abcd", s)))
 
         s = "'$(a)' \"$(b)\""
         self.assertASTEquals(s,

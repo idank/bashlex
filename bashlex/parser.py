@@ -115,7 +115,11 @@ def p_redirection(p):
 
 def _expandword(tokenizer, tokenword):
     quoted = bool(tokenword.flags & flags.word.QUOTED)
-    parts, expandedword = subst._expandwordinternal(tokenizer, tokenword, 0, 0, 0, 0)
+    doublequoted = quoted and tokenword.value[0] == '"'
+
+    # TODO set qheredocument
+    parts, expandedword = subst._expandwordinternal(tokenizer, tokenword, 0,
+                                                    doublequoted, 0, 0)
 
     # XXX if we span te entire word, just replace it?
     if (not quoted and parts and
