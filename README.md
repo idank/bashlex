@@ -13,6 +13,8 @@ For the most part it's transliterated from C, the major differences are:
 Installation:
 
   $ pip install git://github.com/idank/bashlex.git
+  $ cd bashlex
+  $ pip install -r requirements.txt
 
   $ python
   >>> import bashlex
