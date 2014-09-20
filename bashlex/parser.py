@@ -23,6 +23,9 @@ def p_inputunit(p):
 
     if isinstance(p[1], ast.node):
         p[0] = p[1]
+        # accept right here in case the input contains more lines that are
+        # not part of the current command
+        p.accept()
 
 def p_word_list(p):
     '''word_list : WORD
@@ -482,12 +485,65 @@ yaccparser = yacc.yacc(tabmodule='bashlex.parsetab',
               outputdir=os.path.dirname(__file__),
               debug=False)
 
+# some hack to fix yacc's reduction on command substitutions
 yaccparser.action[45]['RIGHT_PAREN'] = -155
 yaccparser.action[11]['RIGHT_PAREN'] = -148
 
+for tt in tokenizer.tokentype:
+    yaccparser.action[62][tt.name] = -1
+    yaccparser.action[63][tt.name] = -141
+
+def parsesingle(s, strictmode=True, convertpos=False):
+    '''like parse, but only consumes a single top level node, e.g. parsing
+    'a\nb' will only return a node for 'a', leaving b unparsed'''
+    p = _parser(s, strictmode=strictmode)
+    tree = p.parse()
+    if convertpos:
+        ast.posconverter(s).visit(tree)
+    return tree
+
 def parse(s, strictmode=True, convertpos=False):
-    p = _parser(s, strictmode=strictmode, convertpos=convertpos)
-    return p.parse()
+    '''parse the input string, returning a list of nodes
+
+    top level node kinds are:
+
+    - command - a simple command
+    - pipeline - a series of simple commands
+    - list - a series of one or more pipelines
+    - compound - contains constructs for { list; }, (list), if, for..
+
+    leafs are word nodes (which in turn can also contain any of the
+    aforementioned nodes due to command substitutions)'''
+    p = _parser(s, strictmode=strictmode)
+    parts = [p.parse()]
+
+    class endfinder(ast.nodevisitor):
+        def __init__(self):
+            self.end = -1
+        def visitheredoc(self, node, value):
+            self.end = node.pos[1]
+
+    # find the 'real' end incase we have a heredoc in there
+    ef = _endfinder()
+    ef.visit(parts[-1])
+    index = max(parts[-1].pos[1], ef.end) + 1
+    while index < len(s):
+        part = _parser(s[index:], strictmode=strictmode).parse()
+
+        if not isinstance(part, ast.node):
+            break
+
+        ast.posshifter(index).visit(part)
+        parts.append(part)
+        ef = _endfinder()
+        ef.visit(parts[-1])
+        index = max(parts[-1].pos[1], ef.end) + 1
+
+    if convertpos:
+        for tree in parts:
+            ast.posconverter(s).visit(tree)
+
+    return parts
 
 class _parser(object):
     '''
@@ -495,14 +551,13 @@ class _parser(object):
     when we're in the middle of parsing. as a hack, we shove it into the
     YaccProduction context attribute to make it accessible.
     '''
-    def __init__(self, s, strictmode=True, convertpos=False, tokenizerargs=None):
+    def __init__(self, s, strictmode=True, tokenizerargs=None):
         # when strictmode is set to False, we will:
         #
         # - skip reading a heredoc if we're at the end of the input
 
         self.s = s
         self._strictmode = strictmode
-        self._convertpos = convertpos
 
         if tokenizerargs is None:
             tokenizerargs = {}
@@ -516,15 +571,20 @@ class _parser(object):
         self.redirstack = self.tok.redirstack
 
     def parse(self):
-        try:
-            # yacc.yacc returns a parser object that is not reentrant, it has
-            # some mutable state. we make a shallow copy of it so no
-            # state spills over to the next call to parse on it
-            theparser = copy.copy(yaccparser)
-            tree = theparser.parse(lexer=self.tok, context=self)
-        except tokenizer.MatchedPairError, e:
-            raise errors.ParsingError(e.args[1], self.s, len(self.s) - 1)
+        # yacc.yacc returns a parser object that is not reentrant, it has
+        # some mutable state. we make a shallow copy of it so no
+        # state spills over to the next call to parse on it
+        theparser = copy.copy(yaccparser)
+        tree = theparser.parse(lexer=self.tok, context=self)
 
-        if self._convertpos:
-            ast.posconverter(self.s).visit(tree)
         return tree
+
+class _endfinder(ast.nodevisitor):
+    '''helper class to find the "real" end pos of a node that contains
+    a heredoc. this is a hack because heredoc aren't really part of any node
+    since they don't always follow the end of a node and might appear on
+    a different line'''
+    def __init__(self):
+        self.end = -1
+    def visitheredoc(self, node, value):
+        self.end = node.pos[1]

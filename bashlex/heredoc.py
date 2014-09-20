@@ -47,4 +47,8 @@ def makeheredoc(tokenizer, redirnode, lineno, killleading):
     redirnode.heredoc = ast.node(kind='heredoc', value=document,
                                  pos=(startpos, endpos))
 
+    # if the heredoc immediately follows this node, fix its end pos
+    if redirnode.pos[1] + 1 == startpos:
+        redirnode.pos = (redirnode.pos[0], endpos)
+
     return document

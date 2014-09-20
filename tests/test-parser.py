@@ -76,10 +76,22 @@ def ifnode(s, *parts):
 
 class test_parser(unittest.TestCase):
     def assertASTEquals(self, s, expected, strictmode=True):
-        result = parse(s, strictmode=strictmode)
+        results = parse(s, strictmode=strictmode)
+        self.assertTrue(len(results) == 1, 'expected one ast from parse(), '
+                        'got %d' % len(results))
+        result = results[0]
 
         msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
         self.assertEquals(result, expected, msg)
+
+    def assertASTsEquals(self, s, expectedlist, strictmode=True):
+        results = parse(s, strictmode=strictmode)
+        self.assertEquals(len(results), len(expectedlist),
+                          'mismatch on ASTs length')
+
+        for result, expected in zip(results, expectedlist):
+            msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
+            self.assertEquals(result, expected, msg)
 
     def test_command(self):
         s = 'a b c'
@@ -111,6 +123,15 @@ class test_parser(unittest.TestCase):
                   wordnode('b'),
                   redirectnode('>&1', None, '>&', 1),
                   redirectnode('2>&1', 2, '>&', 1)))
+
+    def test_multiline(self):
+        s = 'a\nb'
+        self.assertASTsEquals(s, [
+                              commandnode('a',
+                                wordnode('a')),
+                              commandnode('b',
+                                wordnode('b'))
+                              ])
 
     def test_pipeline(self):
         s = 'a | b'
@@ -680,7 +701,7 @@ class test_parser(unittest.TestCase):
         self.assertASTEquals(s,
                 commandnode('a <<EOF',
                   wordnode('a'),
-                  redirectnode('<<EOF', None, '<<', wordnode('EOF'),
+                  redirectnode('<<EOF\n%s' % doc, None, '<<', wordnode('EOF'),
                       heredocnode(doc))
                 ))
 

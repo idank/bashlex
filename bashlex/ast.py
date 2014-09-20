@@ -182,3 +182,11 @@ class posconverter(nodevisitor):
         assert hasattr(node, 'pos'), 'node %r is missing pos attr' % node
         start, end = node.__dict__.pop('pos')
         node.s = self.string[start:end]
+
+class posshifter(nodevisitor):
+    def __init__(self, count):
+        self.count = count
+
+    def visitnode(self, node):
+        #assert node.pos[1] + base <= endlimit
+        node.pos = (node.pos[0] + self.count, node.pos[1] + self.count)
