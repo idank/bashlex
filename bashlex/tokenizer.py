@@ -130,8 +130,8 @@ class MatchedPairError(errors.ParsingError):
     def __init__(self, startline, message, tokenizer):
         # TODO use startline?
         super(MatchedPairError, self).__init__(message,
-                                               tokenizer._shell_input_line,
-                                               tokenizer._shell_input_line_index)
+                                               tokenizer.source,
+                                               tokenizer._shell_input_line_index - 1)
 
 wordflags = flags.word
 parserflags = flags.parser
@@ -233,6 +233,12 @@ class tokenizer(object):
         # nodes when it reads heredocs. this instance is shared between
         # the tokenizer and the parser, which also needs it
         self.redirstack = []
+
+    @property
+    def source(self):
+        if self._added_newline:
+            return self._shell_input_line[:-1]
+        return self._shell_input_line
 
     def __iter__(self):
         while True:

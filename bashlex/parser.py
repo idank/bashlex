@@ -481,11 +481,11 @@ def p_error(p):
 
     if p.ttype == tokenizer.tokentype.EOF:
         raise errors.ParsingError('unexpected EOF',
-                                  p.lexer._shell_input_line,
-                                  len(p.lexer._shell_input_line) - 1)
+                                  p.lexer.source,
+                                  len(p.lexer.source))
     else:
         raise errors.ParsingError('unexpected token %r' % p.value,
-                                  p.lexer._shell_input_line, p.lexpos)
+                                  p.lexer.source, p.lexpos)
 
 yaccparser = yacc.yacc(tabmodule='bashlex.parsetab',
               outputdir=os.path.dirname(__file__),

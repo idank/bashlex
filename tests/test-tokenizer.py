@@ -280,7 +280,7 @@ class test_tokenizer(unittest.TestCase):
 
     def test_quote_error(self):
         s = "a 'b"
-        msg = "EOF.*matching \"'\" \\(position 5"
+        msg = "EOF.*matching \"'\" \\(position 4"
         self.assertRaisesRegexp(errors.ParsingError, msg, tokenize, s)
 
     def test_escape_error(self):
