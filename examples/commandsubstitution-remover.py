@@ -6,8 +6,8 @@ from argparse import RawTextHelpFormatter
 from bashlex import parser, ast
 
 class nodevisitor(ast.nodevisitor):
-    def __init__(self):
-        self.positions = []
+    def __init__(self, positions):
+        self.positions = positions
 
     def visitcommandsubstitution(self, n, command):
         # log the start and end positions of this command substitution
@@ -56,16 +56,18 @@ if __name__ == '__main__':
     else:
         s = sys.stdin.read()
 
-    tree = parser.parse(s)
-    visitor = nodevisitor()
-    visitor.visit(tree)
+    trees = parser.parse(s)
+    positions = []
+    for tree in trees:
+        visitor = nodevisitor(positions)
+        visitor.visit(tree)
 
     # do replacements from the end so the indicies will be correct
-    visitor.positions.reverse()
+    positions.reverse()
 
     postprocessed = list(s)
 
-    for start, end in visitor.positions:
+    for start, end in positions:
         # replace the portion of the input where the substitution occurred
         # with the replacement string
         postprocessed[start:end] = args.replacement
