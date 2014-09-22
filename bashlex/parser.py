@@ -185,7 +185,28 @@ def p_shell_command(p):
     if len(p) == 2:
         p[0] = p[1]
     else:
-        assert False
+        # while or until
+        parts = _makeparts(p)
+        kind = parts[0].word
+        assert kind in ('while', 'until')
+        p[0] = ast.node(kind='compound',
+                        redirects=[],
+                        list=[ast.node(kind=kind, parts=parts, pos=_partsspan(parts))],
+                        pos=_partsspan(parts))
+
+
+def _makeparts(p):
+    parts = []
+    for i in range(1, len(p)):
+        if isinstance(p[i], ast.node):
+            parts.append(p[i])
+        elif isinstance(p[i], list):
+            parts.extend(p[i])
+        # a token
+        else:
+            assert isinstance(p.slice[i], tokenizer.token)
+            parts.append(ast.node(kind='reservedword', word=p[i], pos=p.lexspan(i)))
+    return parts
 
 def p_for_command(p):
     '''for_command : FOR WORD newline_list DO compound_list DONE
@@ -196,15 +217,18 @@ def p_for_command(p):
                    | FOR WORD newline_list IN word_list list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY
                    | FOR WORD newline_list IN list_terminator newline_list DO compound_list DONE
                    | FOR WORD newline_list IN list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY'''
-    # XXX
-    assert False, 'todo'
+    parts = _makeparts(p)
+    p[0] = ast.node(kind='compound',
+                    redirects=[],
+                    list=[ast.node(kind='for', parts=parts, pos=_partsspan(parts))],
+                    pos=_partsspan(parts))
 
 def p_arith_for_command(p):
     '''arith_for_command : FOR ARITH_FOR_EXPRS list_terminator newline_list DO compound_list DONE
                          | FOR ARITH_FOR_EXPRS list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY
                          | FOR ARITH_FOR_EXPRS DO compound_list DONE
                          | FOR ARITH_FOR_EXPRS LEFT_CURLY compound_list RIGHT_CURLY'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_select_command(p):
     '''select_command : SELECT WORD newline_list DO list DONE
@@ -213,24 +237,24 @@ def p_select_command(p):
                       | SELECT WORD SEMICOLON newline_list LEFT_CURLY list RIGHT_CURLY
                       | SELECT WORD newline_list IN word_list list_terminator newline_list DO list DONE
                       | SELECT WORD newline_list IN word_list list_terminator newline_list LEFT_CURLY list RIGHT_CURLY'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_case_command(p):
     '''case_command : CASE WORD newline_list IN newline_list ESAC
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
                     | FUNCTION WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
                     | FUNCTION WORD newline_list function_body'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_function_body(p):
     '''function_body : shell_command
                      | shell_command redirection_list'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_subshell(p):
     '''subshell : LEFT_PAREN compound_list RIGHT_PAREN'''
@@ -246,7 +270,7 @@ def p_coproc(p):
               | COPROC WORD shell_command
               | COPROC WORD shell_command redirection_list
               | COPROC simple_command'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_if_command(p):
     '''if_command : IF compound_list THEN compound_list FI
@@ -255,19 +279,7 @@ def p_if_command(p):
     # we currently don't distinguish the various lists that make up the
     # command, because it's not needed later on. if there will be a need
     # we can always add different nodes for elif/else.
-    parts = []
-    for i in range(1, len(p)):
-        # compound_list
-        if isinstance(p[i], ast.node):
-            parts.append(p[i])
-        # elif_clause
-        elif isinstance(p[i], list):
-            parts.extend(p[i])
-        # a token
-        else:
-            assert isinstance(p.slice[i], tokenizer.token)
-            parts.append(ast.node(kind='reservedword', word=p[i], pos=p.lexspan(i)))
-
+    parts = _makeparts(p)
     p[0] = ast.node(kind='compound',
                     redirects=[],
                     list=[ast.node(kind='if', parts=parts, pos=_partsspan(parts))],
@@ -283,11 +295,11 @@ def p_group_command(p):
 
 def p_arith_command(p):
     '''arith_command : ARITH_CMD'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_cond_command(p):
     '''cond_command : COND_START COND_CMD COND_END'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_elif_clause(p):
     '''elif_clause : ELIF compound_list THEN compound_list
@@ -304,14 +316,14 @@ def p_elif_clause(p):
 def p_case_clause(p):
     '''case_clause : pattern_list
                    | case_clause_sequence pattern_list'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
                     | newline_list pattern RIGHT_PAREN newline_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN compound_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN newline_list'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_case_clause_sequence(p):
     '''case_clause_sequence : pattern_list SEMI_SEMI
@@ -320,12 +332,12 @@ def p_case_clause_sequence(p):
                             | case_clause_sequence pattern_list SEMI_AND
                             | pattern_list SEMI_SEMI_AND
                             | case_clause_sequence pattern_list SEMI_SEMI_AND'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_pattern(p):
     '''pattern : WORD
                | pattern BAR WORD'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_list(p):
     '''list : newline_list list0'''
@@ -458,7 +470,7 @@ def p_timespec(p):
     '''timespec : TIME
                 | TIME TIMEOPT
                 | TIME TIMEOPT TIMEIGN'''
-    assert False, 'todo'
+    raise NotImplementedError
 
 def p_empty(p):
     '''empty :'''

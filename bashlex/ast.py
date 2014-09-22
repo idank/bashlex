@@ -56,7 +56,7 @@ class nodevisitor(object):
                     self.visit(child)
                 for child in n.redirects:
                     self.visit(child)
-        elif k == 'if':
+        elif k in ('if', 'for', 'while', 'until'):
             dochild = self._visitnode(n, n.parts)
             if dochild is None or dochild:
                 for child in n.parts:
@@ -103,6 +103,12 @@ class nodevisitor(object):
     def visitcompound(self, n, list, redirects):
         pass
     def visitif(self, node, parts):
+        pass
+    def visitfor(self, node, parts):
+        pass
+    def visitwhile(self, node, parts):
+        pass
+    def visituntil(self, node, parts):
         pass
     def visitcommand(self, n, parts):
         pass
