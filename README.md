@@ -10,9 +10,7 @@ For the most part it's transliterated from C, the major differences are:
 
 ## Installation:
 
-    $ pip install git://github.com/idank/bashlex.git
-    $ cd bashlex
-    $ pip install -r requirements.txt
+    $ pip install bashlex
 
 ## Usage
 
@@ -28,21 +26,25 @@ For the most part it's transliterated from C, the major differences are:
       OperatorNode(op='&&', pos=(5, 7)),
       CommandNode(pos=(8, 31), parts=[
         WordNode(pos=(8, 11), word='cat'),
-        ProcesssubstitutionNode(command=
-          CommandNode(pos=(14, 30), parts=[
-            WordNode(pos=(14, 18), word='echo'),
-            CommandsubstitutionNode(command=
-              CommandNode(pos=(21, 29), parts=[
-                WordNode(pos=(21, 25), word='echo'),
-                WordNode(pos=(26, 29), word='foo'),
-              ]), pos=(19, 30)),
-          ]), pos=(12, 31)),
+        WordNode(pos=(12, 31), word='<(echo $(echo foo))', parts=[
+          ProcesssubstitutionNode(command=
+            CommandNode(pos=(14, 30), parts=[
+              WordNode(pos=(14, 18), word='echo'),
+              WordNode(pos=(19, 30), word='$(echo foo)', parts=[
+                CommandsubstitutionNode(command=
+                  CommandNode(pos=(21, 29), parts=[
+                    WordNode(pos=(21, 25), word='echo'),
+                    WordNode(pos=(26, 29), word='foo'),
+                  ]), pos=(19, 30)),
+              ]),
+            ]), pos=(12, 31)),
+        ]),
       ]),
     ])
 
 It is also possible to only use the tokenizer and get similar behaviour to
-shlex.split, but with support for more complex constructs such as command
-substitutions:
+shlex.split, but bashlex understands more complex constructs such as command
+and process substitutions:
 
     >>> bashlex.split('cat <(echo "a $(echo b)") | tee'')
     ['cat', '<(echo "a $(echo b)")', '|', 'tee']
