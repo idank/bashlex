@@ -244,14 +244,15 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
                     if stopatcolon and r == ':':
                         break
                 else:
-                    # go one past the end jf we didn't exit early
+                    # go one past the end if we didn't exit early
                     i += 1
+
                 if i > sindex[0] and expand:
                     node = ast.node(kind='tilde', value=string[sindex[0]:i],
                                     pos=(sindex[0], i))
                     parts.append(node)
-                sindex[0] = i
                 istring += string[sindex[0]:i]
+                sindex[0] = i
 
         elif c == '$' and len(string) > 1:
             tindex = sindex[0]

@@ -81,6 +81,13 @@ class test_parser(unittest.TestCase):
                         'got %d' % len(results))
         result = results[0]
 
+        # make sure our words are not empty
+        class nullopvisitor(ast.nodevisitor):
+            def visitword(_, node, word):
+                self.assertTrue(word, 'node %r has no word' % node)
+
+        nullopvisitor().visit(result)
+
         msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
         self.assertEquals(result, expected, msg)
 
@@ -193,18 +200,22 @@ class test_parser(unittest.TestCase):
         s = '$($<$(a) b)'
         self.assertASTEquals(s,
             commandnode(s,
+              wordnode(s, s, [
                 comsubnode(s,
                     commandnode('$<$(a) b',
                         wordnode('$'),
                         redirectnode('<$(a)', None, '<',
+                          wordnode('$(a)', '$(a)', [
                             comsubnode('$(a)',
                                 commandnode('a',
                                     wordnode('a'))
                             )
+                          ])
                         ),
                         wordnode('b'),
                     )
                 )
+              ])
             )
         )
 
@@ -213,15 +224,23 @@ class test_parser(unittest.TestCase):
         self.assertASTEquals(s,
                 commandnode(s,
                   wordnode('a'),
-                  parameternode('$1', '$1'),
-                  variablenode('$foo_bar', '$foo_bar'),
+                  wordnode('$1', '$1', [
+                    parameternode('$1', '$1'),
+                  ]),
+                  wordnode('$foo_bar', '$foo_bar', [
+                    variablenode('$foo_bar', '$foo_bar'),
+                  ]),
                   wordnode('$@ $#', '"$@ $#"', [
                       parameternode('$@', '$@'),
                       parameternode('$#', '$#')
                   ]),
-                  tildenode('~foo', '~foo'),
+                  wordnode('~foo', '~foo', [
+                    tildenode('~foo', '~foo'),
+                  ]),
                   wordnode(' ~bar', '" ~bar"'),
-                  parameternode('${a}', '${a}'),
+                  wordnode('${a}', '${a}', [
+                    parameternode('${a}', '${a}'),
+                  ]),
                   wordnode('${}', '"${}"', [
                       parameternode('${}', '${}'),
                   ]),
@@ -232,16 +251,20 @@ class test_parser(unittest.TestCase):
         s = 'a <(b $(c))'
         self.assertASTEquals(s,
             commandnode(s,
-                wordnode('a'),
+              wordnode('a'),
+              wordnode('<(b $(c))', '<(b $(c))', [
                 procsubnode('<(b $(c))',
-                    commandnode('b $(c)',
-                        wordnode('b'),
-                        comsubnode('$(c)',
-                            commandnode('c',
-                                wordnode('c'))
-                        )
+                  commandnode('b $(c)',
+                    wordnode('b'),
+                    wordnode('$(c)', '$(c)', [
+                      comsubnode('$(c)',
+                          commandnode('c',
+                              wordnode('c'))
+                      )]
                     )
+                  )
                 )
+              ])
             )
         )
 
@@ -723,9 +746,12 @@ class test_parser(unittest.TestCase):
                 commandnode(s,
                   wordnode('a', 'a'),
                   redirectnode('<<<$(b)', None, '<<<',
-                               comsubnode('$(b)',
-                                   commandnode('b',
-                                       wordnode('b'))
-                               )
-                              )
-                           ))
+                    wordnode('$(b)', '$(b)', [
+                      comsubnode('$(b)',
+                        commandnode('b',
+                          wordnode('b'))
+                      )
+                    ])
+                  )
+                )
+            )

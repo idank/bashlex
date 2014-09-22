@@ -124,15 +124,9 @@ def _expandword(tokenizer, tokenword):
     parts, expandedword = subst._expandwordinternal(tokenizer, tokenword, 0,
                                                     doublequoted, 0, 0)
 
-    # XXX if we span te entire word, just replace it?
-    if (not quoted and parts and
-        (len(parts) == 1 or
-        (tokenword.lexpos, tokenword.endlexpos) == _partsspan(parts))):
-        return parts
-    else:
-        node = ast.node(kind='word', word=expandedword,
-                        pos=(tokenword.lexpos, tokenword.endlexpos), parts=parts)
-        return [node]
+    node = ast.node(kind='word', word=expandedword,
+                    pos=(tokenword.lexpos, tokenword.endlexpos), parts=parts)
+    return [node]
 
 def p_simple_command_element(p):
     '''simple_command_element : WORD
