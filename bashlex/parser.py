@@ -31,10 +31,10 @@ def p_word_list(p):
     '''word_list : WORD
                  | word_list WORD'''
     if len(p) == 2:
-        p[0] = [ast.node(kind='word', word=p[1], pos=p.lexspan(1))]
+        p[0] = [ast.node(kind='word', word=p[1], parts=[], pos=p.lexspan(1))]
     else:
         p[0] = p[1]
-        p[0].append(ast.node(kind='word', word=p[2], pos=p.lexspan(2)))
+        p[0].append(ast.node(kind='word', word=p[2], parts=[], pos=p.lexspan(2)))
 
 def p_redirection_heredoc(p):
     '''redirection : LESS_LESS WORD
@@ -396,7 +396,7 @@ def p_list_terminator(p):
                        | SEMICOLON
                        | EOF'''
     if p[1] == ';':
-        p[0] = ast.node(kind='operator', op=';')
+        p[0] = ast.node(kind='operator', op=';', pos=p.lexspan(1))
 
 def p_newline_list(p):
     '''newline_list : empty

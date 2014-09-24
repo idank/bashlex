@@ -781,9 +781,6 @@ class test_parser(unittest.TestCase):
                             ))
                           )
 
-        return
-        # FIXME
-
         s = 'for a in b; do b; done'
         self.assertASTEquals(s,
                           compoundnode(s,
@@ -792,7 +789,7 @@ class test_parser(unittest.TestCase):
                               wordnode('a'),
                               reservedwordnode('in', 'in'),
                               wordnode('b'),
-                              reservedwordnode(';', ';'),
+                              operatornode(';', ';'),
                               reservedwordnode('do', 'do'),
                               listnode('b;',
                                 commandnode('b', wordnode('b')),

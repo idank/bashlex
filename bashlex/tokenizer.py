@@ -221,6 +221,7 @@ class tokenizer(object):
         self._parserstate = parserstate
         self._line_number = 0
         self._open_brace_count = 0
+        self._esacs_needed_count = 0
 
         self._dstack = []
 
@@ -530,14 +531,19 @@ class tokenizer(object):
         # got_token
         self._recordpos()
 
-        if d['all_digit_token'] and (c in '<>' or self._last_read_token.ttype in (tokentype.LESS_AND, tokentype.GREATER_AND)) and shutils.legal_number(''.join(tokenword)):
-            return self._createtoken(tokentype.NUMBER, int(''.join(tokenword)))
+        tokenword = ''.join(tokenword)
 
-        # XXX 4811
+        if d['all_digit_token'] and (c in '<>' or self._last_read_token.ttype in (tokentype.LESS_AND, tokentype.GREATER_AND)) and shutils.legal_number(tokenword):
+            return self._createtoken(tokentype.NUMBER, int(tokenword))
+
+        # 4811
+        specialtokentype = self._specialcasetokens(tokenword)
+        if specialtokentype:
+            return self._createtoken(specialtokentype, tokenword)
 
         if not d['dollar_present'] and not d['quoted'] and self._reserved_word_acceptable(self._last_read_token):
-            if ''.join(tokenword) in valid_reserved_first_command:
-                ttype = valid_reserved_first_command[''.join(tokenword)]
+            if tokenword in valid_reserved_first_command:
+                ttype = valid_reserved_first_command[tokenword]
                 ps = self._parserstate
                 if ps & parserflags.CASEPAT and ttype != tokentype.ESAC:
                     pass
@@ -557,9 +563,9 @@ class tokenizer(object):
                     self._open_brace_count += 1
                 elif ttype == tokentype.RIGHT_CURLY and self._open_brace_count:
                     self._open_brace_count -= 1
-                return self._createtoken(ttype, ''.join(tokenword))
+                return self._createtoken(ttype, tokenword)
 
-        tokenword = self._createtoken(tokentype.WORD, ''.join(tokenword), utils.typedset(wordflags))
+        tokenword = self._createtoken(tokentype.WORD, tokenword, utils.typedset(wordflags))
         if d['dollar_present']:
             tokenword.flags.add(wordflags.HASDOLLAR)
         if d['quoted']:
@@ -1094,6 +1100,59 @@ class tokenizer(object):
         if peek_char is not None:
             self._ungetc(peek_char)
         return peek_char
+
+    def _specialcasetokens(self, tokstr):
+        if (self._last_read_token.ttype == tokentype.WORD and
+            self._token_before_that.ttype in (tokentype.FOR,
+                                              tokentype.CASE,
+                                              tokentype.SELECT) and
+            tokstr == 'in'):
+                if self._token_before_that.ttype == tokentype.CASE:
+                    self._parserstate.add(parserflags.CASEPAT)
+                    self._esacs_needed_count += 1
+                return tokentype.IN
+
+        if (self._last_read_token.ttype == tokentype.WORD and
+            self._token_before_that.ttype in (tokentype.FOR, tokentype.SELECT) and
+            tokstr == 'do'):
+            return tokentype.DO
+
+        if self._esacs_needed_count:
+            self._esacs_needed_count -= 1
+            if tokstr == 'esac':
+                self._parserstate.discard(parserflags.CASEPAT)
+                return tokentype.ESAC
+
+        if self._parserstate & parserflags.ALLOWOPNBRC:
+            self._parserstate.discard(parserflags.ALLOWOPNBRC)
+            if tokstr == '{':
+                self._open_brace_count += 1
+                # 2887
+                return tokentype.LEFT_CURLY
+
+        if (self._last_read_token.ttype == tokentype.ARITH_FOR_EXPRS and
+            tokstr == 'do'):
+            return tokentype.DO
+
+        if (self._last_read_token.ttype == tokentype.ARITH_FOR_EXPRS and
+            tokstr == '{'):
+            self._open_brace_count += 1
+            return tokentype.LEFT_CURLY
+
+        if (self._open_brace_count and
+            self._reserved_word_acceptable(self._last_read_token) and
+            tokstr == '}'):
+            self._open_brace_count -= 1
+            return tokentype.RIGHT_CURLY
+
+        if self._last_read_token.ttype == tokentype.TIME and tokstr == '-p':
+            return tokentype.TIMEOPT
+
+        if self._last_read_token.ttype == tokentype.TIMEOPT and tokstr == '--':
+            return tokentype.TIMEIGN
+
+        if self._parserstate & parserflags.CONDEXPR and tokstr == ']]':
+            return tokentype.COND_END
 
 def split(s):
     '''a utility function that mimics shlex.split but handles more
