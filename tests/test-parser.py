@@ -74,6 +74,9 @@ def comsubnode(s, command):
 def ifnode(s, *parts):
     return ast.node(kind='if', parts=list(parts), s=s)
 
+def fornode(s, *parts):
+    return ast.node(kind='for', parts=list(parts), s=s)
+
 class test_parser(unittest.TestCase):
     def assertASTEquals(self, s, expected, strictmode=True):
         results = parse(s, strictmode=strictmode)
@@ -755,3 +758,40 @@ class test_parser(unittest.TestCase):
                   )
                 )
             )
+
+    def test_for(self):
+        s = 'for a; do b; done'
+        self.assertASTEquals(s,
+                          compoundnode(s,
+                            fornode(s,
+                              reservedwordnode('for', 'for'),
+                              wordnode('a'),
+                              # TODO: needs to be operator node?
+                              reservedwordnode(';', ';'),
+                              reservedwordnode('do', 'do'),
+                              listnode('b;',
+                                commandnode('b', wordnode('b')),
+                                operatornode(';', ';')),
+                              reservedwordnode('done', 'done'),
+                            ))
+                          )
+
+        return
+        # FIXME
+
+        s = 'for a in b; do b; done'
+        self.assertASTEquals(s,
+                          compoundnode(s,
+                            fornode(s,
+                              reservedwordnode('for', 'for'),
+                              wordnode('a'),
+                              reservedwordnode('in', 'in'),
+                              wordnode('b'),
+                              reservedwordnode(';', ';'),
+                              reservedwordnode('do', 'do'),
+                              listnode('b;',
+                                commandnode('b', wordnode('b')),
+                                operatornode(';', ';')),
+                              reservedwordnode('done', 'done'),
+                            ))
+                          )

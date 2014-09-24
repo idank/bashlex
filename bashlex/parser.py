@@ -103,16 +103,12 @@ def p_redirection(p):
         output = p[2]
         if p.slice[2].ttype == tokenizer.tokentype.WORD:
             output = _expandword(p.lexer, p.slice[2])
-            assert len(output) == 1
-            output = output[0]
         p[0] = ast.node(kind='redirect', input=None, type=p[1], heredoc=None,
                         output=output, pos=(p.lexpos(1), p.endlexpos(2)))
     else:
         output = p[3]
         if p.slice[3].ttype == tokenizer.tokentype.WORD:
             output = _expandword(p.lexer, p.slice[3])
-            assert len(output) == 1
-            output = output[0]
         p[0] = ast.node(kind='redirect', input=p[1], type=p[2], heredoc=None,
                         output=output, pos=(p.lexpos(1), p.endlexpos(3)))
 
@@ -126,7 +122,7 @@ def _expandword(tokenizer, tokenword):
 
     node = ast.node(kind='word', word=expandedword,
                     pos=(tokenword.lexpos, tokenword.endlexpos), parts=parts)
-    return [node]
+    return node
 
 def p_simple_command_element(p):
     '''simple_command_element : WORD
@@ -136,7 +132,7 @@ def p_simple_command_element(p):
         p[0] = [p[1]]
         return
 
-    p[0] = _expandword(p.lexer, p.slice[1])
+    p[0] = [_expandword(p.lexer, p.slice[1])]
 
 def p_redirection_list(p):
     '''redirection_list : redirection
@@ -202,10 +198,15 @@ def _makeparts(p):
             parts.append(p[i])
         elif isinstance(p[i], list):
             parts.extend(p[i])
-        # a token
+        elif isinstance(p.slice[i], tokenizer.token):
+            if p.slice[i].ttype == tokenizer.tokentype.WORD:
+                parts.append(_expandword(p.lexer, p.slice[i]))
+            else:
+                parts.append(ast.node(kind='reservedword', word=p[i],
+                                      pos=p.lexspan(i)))
         else:
-            assert isinstance(p.slice[i], tokenizer.token)
-            parts.append(ast.node(kind='reservedword', word=p[i], pos=p.lexspan(i)))
+            pass
+
     return parts
 
 def p_for_command(p):
