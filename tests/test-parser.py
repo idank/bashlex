@@ -17,6 +17,11 @@ def wordnode(word, s=None, parts=None):
         parts = []
     return ast.node(kind='word', word=word, s=s, parts=list(parts))
 
+def assignmentnode(word, s=None, parts=None):
+    node = wordnode(word, s, parts)
+    node.kind = 'assignment'
+    return node
+
 def parameternode(value, s):
     return ast.node(kind='parameter', value=value, s=s)
 
@@ -795,3 +800,52 @@ class test_parser(unittest.TestCase):
                               reservedwordnode('done', 'done'),
                             ))
                           )
+
+    def test_assignments(self):
+        # assignments must appear before the first word
+        s = 'a=b c e=d'
+        self.assertASTEquals(s,
+                             commandnode(s,
+                               assignmentnode('a=b'),
+                               wordnode('c'),
+                               wordnode('e=d'),
+                             )
+                            )
+
+        s = 'a=b c="d"e\'f\'g h'
+        self.assertASTEquals(s,
+                             commandnode(s,
+                               assignmentnode('a=b'),
+                               assignmentnode('c=defg', 'c="d"e\'f\'g'),
+                               wordnode('h'),
+                             )
+                            )
+
+        s = 'a=$(b) c'
+        self.assertASTEquals(s,
+                             commandnode(s,
+                               assignmentnode('a=$(b)', 'a=$(b)', [
+                                comsubnode('$(b)',
+                                  commandnode('b',
+                                    wordnode('b'),
+                                  )
+                                )
+                               ]),
+                               wordnode('c'),
+                             )
+                            )
+
+        s = 'a="$(b) $c" d'
+        self.assertASTEquals(s,
+                             commandnode(s,
+                               assignmentnode('a=$(b) $c', 'a="$(b) $c"', [
+                                comsubnode('$(b)',
+                                  commandnode('b',
+                                    wordnode('b'),
+                                  )
+                                ),
+                                variablenode('$c', '$c')
+                               ]),
+                               wordnode('d'),
+                             )
+                            )

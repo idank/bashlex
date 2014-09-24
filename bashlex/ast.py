@@ -73,7 +73,7 @@ class nodevisitor(object):
                     self.visit(n.output)
                 if n.heredoc:
                     self.visit(n.heredoc)
-        elif k == 'word':
+        elif k in ('word', 'assignment'):
             dochild = self._visitnode(n, n.word)
             if dochild is None or dochild:
                 for child in n.parts:
@@ -113,6 +113,8 @@ class nodevisitor(object):
     def visitcommand(self, n, parts):
         pass
     def visitword(self, n, word):
+        pass
+    def visitassignment(self, n, word):
         pass
     def visitreservedword(self, n, word):
         pass

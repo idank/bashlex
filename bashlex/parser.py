@@ -134,6 +134,10 @@ def p_simple_command_element(p):
 
     p[0] = [_expandword(p.lexer, p.slice[1])]
 
+    # change the word node to an assignment if necessary
+    if p.slice[1].ttype == tokenizer.tokentype.ASSIGNMENT_WORD:
+        p[0][0].kind = 'assignment'
+
 def p_redirection_list(p):
     '''redirection_list : redirection
                         | redirection_list redirection'''
