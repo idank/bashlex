@@ -186,6 +186,8 @@ def p_shell_command(p):
         p[0] = p[1]
     else:
         # while or until
+        assert p[2].kind == 'list'
+
         parts = _makeparts(p)
         kind = parts[0].word
         assert kind in ('while', 'until')
@@ -223,6 +225,14 @@ def p_for_command(p):
                    | FOR WORD newline_list IN list_terminator newline_list DO compound_list DONE
                    | FOR WORD newline_list IN list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY'''
     parts = _makeparts(p)
+    # find the operatornode that we might have there due to
+    # list_terminator/newline_list and convert it to a reservedword so its
+    # considered as part of the for loop
+    for i, part in enumerate(parts):
+        if part.kind == 'operator' and part.op == ';':
+            parts[i] = ast.node(kind='reservedword', word=';', pos=part.pos)
+            break # there could be only one in there...
+
     p[0] = ast.node(kind='compound',
                     redirects=[],
                     list=[ast.node(kind='for', parts=parts, pos=_partsspan(parts))],

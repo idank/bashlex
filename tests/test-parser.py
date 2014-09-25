@@ -82,6 +82,9 @@ def ifnode(s, *parts):
 def fornode(s, *parts):
     return ast.node(kind='for', parts=list(parts), s=s)
 
+def whilenode(s, *parts):
+    return ast.node(kind='while', parts=list(parts), s=s)
+
 class test_parser(unittest.TestCase):
     def assertASTEquals(self, s, expected, strictmode=True):
         results = parse(s, strictmode=strictmode)
@@ -771,7 +774,6 @@ class test_parser(unittest.TestCase):
                             fornode(s,
                               reservedwordnode('for', 'for'),
                               wordnode('a'),
-                              # TODO: needs to be operator node?
                               reservedwordnode(';', ';'),
                               reservedwordnode('do', 'do'),
                               listnode('b;',
@@ -789,7 +791,7 @@ class test_parser(unittest.TestCase):
                               wordnode('a'),
                               reservedwordnode('in', 'in'),
                               wordnode('b'),
-                              operatornode(';', ';'),
+                              reservedwordnode(';', ';'),
                               reservedwordnode('do', 'do'),
                               listnode('b;',
                                 commandnode('b', wordnode('b')),
@@ -846,3 +848,20 @@ class test_parser(unittest.TestCase):
                                wordnode('d'),
                              )
                             )
+
+    def test_while(self):
+        s = 'while a; do b; done'
+        self.assertASTEquals(s,
+                          compoundnode(s,
+                            whilenode(s,
+                              reservedwordnode('while', 'while'),
+                              listnode('a;',
+                                commandnode('a', wordnode('a')),
+                                operatornode(';', ';')),
+                              reservedwordnode('do', 'do'),
+                              listnode('b;',
+                                commandnode('b', wordnode('b')),
+                                operatornode(';', ';')),
+                              reservedwordnode('done', 'done'),
+                            ))
+                          )
