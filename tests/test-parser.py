@@ -86,8 +86,8 @@ def whilenode(s, *parts):
     return ast.node(kind='while', parts=list(parts), s=s)
 
 class test_parser(unittest.TestCase):
-    def assertASTEquals(self, s, expected, strictmode=True):
-        results = parse(s, strictmode=strictmode)
+    def assertASTEquals(self, s, expected, **parserargs):
+        results = parse(s, **parserargs)
         self.assertTrue(len(results) == 1, 'expected one ast from parse(), '
                         'got %d' % len(results))
         result = results[0]
@@ -102,8 +102,8 @@ class test_parser(unittest.TestCase):
         msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
         self.assertEquals(result, expected, msg)
 
-    def assertASTsEquals(self, s, expectedlist, strictmode=True):
-        results = parse(s, strictmode=strictmode)
+    def assertASTsEquals(self, s, expectedlist, **parserargs):
+        results = parse(s, **parserargs)
         self.assertEquals(len(results), len(expectedlist),
                           'mismatch on ASTs length')
 
@@ -736,14 +736,14 @@ class test_parser(unittest.TestCase):
                                    redirect_kind, wordnode('EOF'))),
                     pipenode('|', '|'),
                     commandnode('b', wordnode('b', 'b'))),
-                  False)
+                  strictmode=False)
 
         s = 'a <<-b'
         self.assertASTEquals(s,
                 commandnode(s,
                   wordnode('a', 'a'),
                   redirectnode('<<-b', None, '<<-', wordnode('b'))),
-                False)
+                strictmode=False)
 
         s = 'a <<<<b'
         self.assertRaisesRegexp(errors.ParsingError, "unexpected token '<'.*5", parse, s)
@@ -886,3 +886,86 @@ class test_parser(unittest.TestCase):
                               reservedwordnode('done', 'done'),
                             ))
                           )
+
+    def test_expansion_limit(self):
+        '''make sure the expansion limit is working by tracking recursive
+        parsing count, and also checking that the word isn't expanded'''
+        counter = [0]
+        class countingparser(parser._parser):
+            def __init__(self, *args, **kwargs):
+                super(countingparser, self).__init__(*args, **kwargs)
+                counter[0] += 1
+
+        old = parser._parser
+        parser._parser = countingparser
+
+        try:
+            s = 'a $(b $(c $(d $(e))))'
+            self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a'),
+                  wordnode('$(b $(c $(d $(e))))', '$(b $(c $(d $(e))))', [
+                    comsubnode('$(b $(c $(d $(e))))',
+                      commandnode('b $(c $(d $(e)))',
+                        wordnode('b'),
+                        wordnode('$(c $(d $(e)))')
+                      )
+                    )
+                  ])
+                ),
+                expansionlimit=1
+            )
+
+            self.assertEquals(counter[0], 3)
+        finally:
+            parser._parser = old
+
+        s = 'a $(b $(c))'
+        for i in [None] + range(2, 5):
+            self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a'),
+                  wordnode('$(b $(c))', '$(b $(c))', [
+                    comsubnode('$(b $(c))',
+                      commandnode('b $(c)',
+                        wordnode('b'),
+                        wordnode('$(c)', '$(c)', [
+                          comsubnode('$(c)',
+                            commandnode('c',
+                              wordnode('c')
+                            )
+                          )
+                        ])
+                      )
+                    )
+                  ])
+                ),
+                expansionlimit=i
+            )
+
+    def test_expansion_limit_word(self):
+        s = 'a "$(b)"c" $1"'
+
+        self.assertASTEquals(s,
+            commandnode(s,
+              wordnode('a'),
+              wordnode('$(b)c $1', '"$(b)"c" $1"', [
+                comsubnode('$(b)',
+                  commandnode('b',
+                    wordnode('b'),
+                  )
+                ),
+                parameternode('$1', '$1'),
+              ])
+            ),
+        )
+
+        self.assertASTEquals(s,
+            commandnode(s,
+              wordnode('a'),
+              wordnode('$(b)c $1', '"$(b)"c" $1"', [
+                parameternode('$1', '$1'),
+              ])
+            ),
+            expansionlimit=0
+        )

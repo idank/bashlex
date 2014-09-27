@@ -2,8 +2,11 @@ import copy
 
 from bashlex import ast, flags, tokenizer
 
-def _recursiveparse(tok, base, sindex, tokenizerargs=None):
+def _recursiveparse(parserobj, base, sindex, tokenizerargs=None):
+    # TODO: fix this hack that prevents mutual import
     from bashlex import parser
+
+    tok = parserobj.tok
 
     if tokenizerargs is None:
         tokenizerargs = {'parserstate' : copy.copy(tok._parserstate),
@@ -12,7 +15,11 @@ def _recursiveparse(tok, base, sindex, tokenizerargs=None):
                          'twotokensago' : tok._two_tokens_ago}
 
     string = base[sindex:]
-    p = parser._parser(string, tokenizerargs=tokenizerargs)
+    newlimit = parserobj._expansionlimit
+    if newlimit is not None:
+        newlimit -= 1
+    p = parser._parser(string, tokenizerargs=tokenizerargs,
+                       expansionlimit=newlimit)
     node = p.parse()
 
     endp = node.pos[1]
@@ -20,19 +27,19 @@ def _recursiveparse(tok, base, sindex, tokenizerargs=None):
 
     return node, endp
 
-def _parsedolparen(tok, base, sindex):
-    copiedps = copy.copy(tok._parserstate)
+def _parsedolparen(parserobj, base, sindex):
+    copiedps = copy.copy(parserobj.parserstate)
     copiedps.add(flags.parser.CMDSUBST)
     copiedps.add(flags.parser.EOFTOKEN)
     string = base[sindex:]
 
     tokenizerargs = {'eoftoken' : tokenizer.token(tokenizer.tokentype.RIGHT_PAREN, ')'),
                      'parserstate' : copiedps,
-                     'lastreadtoken' : tok._last_read_token,
-                     'tokenbeforethat' : tok._token_before_that,
-                     'twotokensago' : tok._two_tokens_ago}
+                     'lastreadtoken' : parserobj.tok._last_read_token,
+                     'tokenbeforethat' : parserobj.tok._token_before_that,
+                     'twotokensago' : parserobj.tok._two_tokens_ago}
 
-    node, endp = _recursiveparse(tok, base, sindex, tokenizerargs)
+    node, endp = _recursiveparse(parserobj, base, sindex, tokenizerargs)
 
     if string[endp] != ')':
         while endp > 0 and string[endp-1] == '\n':
@@ -40,20 +47,20 @@ def _parsedolparen(tok, base, sindex):
 
     return node, sindex + endp
 
-def _extractcommandsubst(tok, string, sindex, sxcommand=False):
+def _extractcommandsubst(parserobj, string, sindex, sxcommand=False):
     if string[sindex] == '(':
-        return _extractdelimitedstring(tok, string, sindex, '$(', '(', '(', sxcommand=True)
+        return _extractdelimitedstring(parserobj, string, sindex, '$(', '(', '(', sxcommand=True)
     else:
-        node, si = _parsedolparen(tok, string, sindex)
+        node, si = _parsedolparen(parserobj, string, sindex)
         si += 1
         return ast.node(kind='commandsubstitution', command=node, pos=(sindex-2, si)), si
 
-def _extractprocesssubst(tok, string, sindex):
+def _extractprocesssubst(parserobj, string, sindex):
     #return _extractdelimitedstring(tok, string, sindex, starter, '(', ')', sxcommand=True)
-    node, si = _parsedolparen(tok, string, sindex)
+    node, si = _parsedolparen(parserobj, string, sindex)
     return node, si + 1
 
-def _extractdelimitedstring(tok, string, sindex, opener, altopener, closer,
+def _extractdelimitedstring(parserobj, string, sindex, opener, altopener, closer,
                             sxcommand=False):
     parts = []
     incomment = False
@@ -88,14 +95,14 @@ def _extractdelimitedstring(tok, string, sindex, opener, altopener, closer,
 
         if sxcommand and string[i:i+2] == '$(':
             si = i + 2
-            node, si = _extractcommandsubst(tok, string, si, sxcommand=sxcommand)
+            node, si = _extractcommandsubst(parserobj, string, si, sxcommand=sxcommand)
             parts.append(node)
             i = si + 1
             continue
 
         if string.startswith(opener, i):
             si = i + len(opener)
-            nodes, si = _extractdelimitedstring(tok, string, si, opener, altopener,
+            nodes, si = _extractdelimitedstring(parserobj, string, si, opener, altopener,
                                                 closer, sxcommand=sxcommand)
             parts.extend(nodes)
             i = si + 1
@@ -103,7 +110,7 @@ def _extractdelimitedstring(tok, string, sindex, opener, altopener, closer,
 
         if string.startswith(altopener, i):
             si = i + len(altopener)
-            nodes, si = _extractdelimitedstring(tok, string, si, altopener, altopener,
+            nodes, si = _extractdelimitedstring(parserobj, string, si, altopener, altopener,
                                                 closer, sxcommand=sxcommand)
             parts.extend(nodes)
             i = si + 1
@@ -137,7 +144,7 @@ def _extractdelimitedstring(tok, string, sindex, opener, altopener, closer,
 
     return parts, i
 
-def _paramexpand(tok, string, sindex):
+def _paramexpand(parserobj, string, sindex):
     node = None
     zindex = sindex + 1
     c = string[zindex] if zindex < len(string) else None
@@ -152,7 +159,7 @@ def _paramexpand(tok, string, sindex):
         # TODO
         # return _parameterbraceexpand(string, zindex)
     elif c == '(':
-        return _extractcommandsubst(tok, string, zindex + 1)
+        return _extractcommandsubst(parserobj, string, zindex + 1)
     elif c == '[':
         return _extractarithmeticsubst(string, zindex + 1)
     else:
@@ -180,7 +187,7 @@ def _adjustpositions(node_, base, endlimit):
     visitor = v()
     visitor.visit(node_)
 
-def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, isexp):
+def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quoted, isexp):
     istring = ''
     parts = []
     tindex = [0]
@@ -210,7 +217,7 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
             else:
                 tindex = sindex[0] + 1
 
-                node, sindex[0] = _extractprocesssubst(tok, string, tindex)
+                node, sindex[0] = _extractprocesssubst(parserobj, string, tindex)
 
                 parts.append(ast.node(kind='processsubstitution', command=node,
                                       pos=(tindex - 2, sindex[0])))
@@ -256,7 +263,7 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
 
         elif c == '$' and len(string) > 1:
             tindex = sindex[0]
-            node, sindex[0] = _paramexpand(tok, string, sindex[0])
+            node, sindex[0] = _paramexpand(parserobj, string, sindex[0])
             if node:
                 parts.append(node)
             istring += string[tindex:sindex[0]]
@@ -278,7 +285,7 @@ def _expandwordinternal(tok, wordtoken, qheredocument, qdoublequotes, quoted, is
                         sindex[0] = x
 
                         word = string[tindex+1:sindex[0]]
-                        command, ttindex = _recursiveparse(tok, word, 0)
+                        command, ttindex = _recursiveparse(parserobj, word, 0)
                         _adjustpositions(command, tindex+1, len(string))
                         ttindex += 1 # ttindex is on the closing char
 

@@ -99,30 +99,50 @@ def p_redirection(p):
                    | REDIR_WORD LESS_AND DASH
                    | AND_GREATER WORD
                    | AND_GREATER_GREATER WORD'''
+    parserobj = p.context
     if len(p) == 3:
         output = p[2]
         if p.slice[2].ttype == tokenizer.tokentype.WORD:
-            output = _expandword(p.lexer, p.slice[2])
+            output = _expandword(parserobj, p.slice[2])
         p[0] = ast.node(kind='redirect', input=None, type=p[1], heredoc=None,
                         output=output, pos=(p.lexpos(1), p.endlexpos(2)))
     else:
         output = p[3]
         if p.slice[3].ttype == tokenizer.tokentype.WORD:
-            output = _expandword(p.lexer, p.slice[3])
+            output = _expandword(parserobj, p.slice[3])
         p[0] = ast.node(kind='redirect', input=p[1], type=p[2], heredoc=None,
                         output=output, pos=(p.lexpos(1), p.endlexpos(3)))
 
-def _expandword(tokenizer, tokenword):
-    quoted = bool(tokenword.flags & flags.word.QUOTED)
-    doublequoted = quoted and tokenword.value[0] == '"'
+def _expandword(parser, tokenword):
+    if parser._expansionlimit == -1:
+        # we enter this branch in the following conditions:
+        # - currently parsing a substitution as a result of an expansion
+        # - the previous expansion had limit == 0
+        #
+        # this means that this node is a descendant of a substitution in an
+        # unexpanded word and will be filtered in the limit == 0 condition below
+        #
+        # (the reason we even expand when limit == 0 is to get quote removal)
+        node = ast.node(kind='word', word=tokenword,
+                        pos=(tokenword.lexpos, tokenword.endlexpos), parts=[])
+        return node
+    else:
+        quoted = bool(tokenword.flags & flags.word.QUOTED)
+        doublequoted = quoted and tokenword.value[0] == '"'
 
-    # TODO set qheredocument
-    parts, expandedword = subst._expandwordinternal(tokenizer, tokenword, 0,
-                                                    doublequoted, 0, 0)
+        # TODO set qheredocument
+        parts, expandedword = subst._expandwordinternal(parser,
+                                                        tokenword, 0,
+                                                        doublequoted, 0, 0)
 
-    node = ast.node(kind='word', word=expandedword,
-                    pos=(tokenword.lexpos, tokenword.endlexpos), parts=parts)
-    return node
+        # limit reached, don't include substitutions (still expanded to get
+        # quote removal though)
+        if parser._expansionlimit == 0:
+            parts = [node for node in parts if 'substitution' not in node.kind]
+
+        node = ast.node(kind='word', word=expandedword,
+                        pos=(tokenword.lexpos, tokenword.endlexpos), parts=parts)
+        return node
 
 def p_simple_command_element(p):
     '''simple_command_element : WORD
@@ -132,7 +152,8 @@ def p_simple_command_element(p):
         p[0] = [p[1]]
         return
 
-    p[0] = [_expandword(p.lexer, p.slice[1])]
+    parserobj = p.context
+    p[0] = [_expandword(parserobj, p.slice[1])]
 
     # change the word node to an assignment if necessary
     if p.slice[1].ttype == tokenizer.tokentype.ASSIGNMENT_WORD:
@@ -206,7 +227,8 @@ def _makeparts(p):
             parts.extend(p[i])
         elif isinstance(p.slice[i], tokenizer.token):
             if p.slice[i].ttype == tokenizer.tokentype.WORD:
-                parts.append(_expandword(p.lexer, p.slice[i]))
+                parserobj = p.context
+                parts.append(_expandword(parserobj, p.slice[i]))
             else:
                 parts.append(ast.node(kind='reservedword', word=p[i],
                                       pos=p.lexspan(i)))
@@ -514,16 +536,16 @@ for tt in tokenizer.tokentype:
     yaccparser.action[62][tt.name] = -1
     yaccparser.action[63][tt.name] = -141
 
-def parsesingle(s, strictmode=True, convertpos=False):
+def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False):
     '''like parse, but only consumes a single top level node, e.g. parsing
     'a\nb' will only return a node for 'a', leaving b unparsed'''
-    p = _parser(s, strictmode=strictmode)
+    p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     tree = p.parse()
     if convertpos:
         ast.posconverter(s).visit(tree)
     return tree
 
-def parse(s, strictmode=True, convertpos=False):
+def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     '''parse the input string, returning a list of nodes
 
     top level node kinds are:
@@ -534,8 +556,15 @@ def parse(s, strictmode=True, convertpos=False):
     - compound - contains constructs for { list; }, (list), if, for..
 
     leafs are word nodes (which in turn can also contain any of the
-    aforementioned nodes due to command substitutions)'''
-    p = _parser(s, strictmode=strictmode)
+    aforementioned nodes due to command substitutions).
+
+    when strictmode is set to False, we will:
+    - skip reading a heredoc if we're at the end of the input
+
+    expansionlimit is used to limit the amount of recursive parsing done due to
+    command substitutions found during word expansion.
+    '''
+    p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     parts = [p.parse()]
 
     class endfinder(ast.nodevisitor):
@@ -572,13 +601,12 @@ class _parser(object):
     when we're in the middle of parsing. as a hack, we shove it into the
     YaccProduction context attribute to make it accessible.
     '''
-    def __init__(self, s, strictmode=True, tokenizerargs=None):
-        # when strictmode is set to False, we will:
-        #
-        # - skip reading a heredoc if we're at the end of the input
+    def __init__(self, s, strictmode=True, expansionlimit=None, tokenizerargs=None):
+        assert expansionlimit is None or isinstance(expansionlimit, int)
 
         self.s = s
         self._strictmode = strictmode
+        self._expansionlimit = expansionlimit
 
         if tokenizerargs is None:
             tokenizerargs = {}
