@@ -537,6 +537,27 @@ class test_parser(unittest.TestCase):
         s = 'ssh -p 2222 <user>@<host>'
         self.assertRaisesRegexp(errors.ParsingError, r"unexpected token '\\n'.*position %d" % len(s), parse, s)
 
+    def test_if_redirection(self):
+        s = 'if foo; then bar; fi >/dev/null'
+        self.assertASTEquals(s,
+                          compoundnode(s,
+                            ifnode('if foo; then bar; fi',
+                              reservedwordnode('if', 'if'),
+                              listnode('foo;',
+                                commandnode('foo', wordnode('foo')),
+                                operatornode(';', ';')),
+                              reservedwordnode('then', 'then'),
+                              listnode('bar;',
+                                commandnode('bar', wordnode('bar')),
+                                operatornode(';', ';')),
+                              reservedwordnode('fi', 'fi'),
+                            ),
+                            redirects=[
+                              redirectnode('>/dev/null', None, '>',
+                                wordnode('/dev/null'))
+                          ])
+                        )
+
     def test_if(self):
         s = 'if foo; then bar; fi'
         self.assertASTEquals(s,
