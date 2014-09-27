@@ -30,11 +30,12 @@ def p_inputunit(p):
 def p_word_list(p):
     '''word_list : WORD
                  | word_list WORD'''
+    parserobj = p.context
     if len(p) == 2:
-        p[0] = [ast.node(kind='word', word=p[1], parts=[], pos=p.lexspan(1))]
+        p[0] = [_expandword(parserobj, p.slice[1])]
     else:
         p[0] = p[1]
-        p[0].append(ast.node(kind='word', word=p[2], parts=[], pos=p.lexspan(2)))
+        p[0].append(_expandword(parserobj, p.slice[2]))
 
 def p_redirection_heredoc(p):
     '''redirection : LESS_LESS WORD

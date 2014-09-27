@@ -788,6 +788,28 @@ class test_parser(unittest.TestCase):
                 )
             )
 
+    def test_for_expansion(self):
+        s = 'for a in $(b)"c"; do d; done'
+        self.assertASTEquals(s,
+                          compoundnode(s,
+                            fornode(s,
+                              reservedwordnode('for', 'for'),
+                              wordnode('a'),
+                              reservedwordnode('in', 'in'),
+                              wordnode('$(b)c', '$(b)"c"', [
+                                comsubnode('$(b)',
+                                  commandnode('b', wordnode('b'))
+                                )
+                              ]),
+                              reservedwordnode(';', ';'),
+                              reservedwordnode('do', 'do'),
+                              listnode('d;',
+                                commandnode('d', wordnode('d')),
+                                operatornode(';', ';')),
+                              reservedwordnode('done', 'done'),
+                            ))
+                          )
+
     def test_for(self):
         s = 'for a; do b; done'
         self.assertASTEquals(s,
@@ -804,7 +826,7 @@ class test_parser(unittest.TestCase):
                             ))
                           )
 
-        s = 'for a in b; do b; done'
+        s = 'for a in b c d; do b; done'
         self.assertASTEquals(s,
                           compoundnode(s,
                             fornode(s,
@@ -812,6 +834,8 @@ class test_parser(unittest.TestCase):
                               wordnode('a'),
                               reservedwordnode('in', 'in'),
                               wordnode('b'),
+                              wordnode('c'),
+                              wordnode('d'),
                               reservedwordnode(';', ';'),
                               reservedwordnode('do', 'do'),
                               listnode('b;',
