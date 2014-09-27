@@ -993,3 +993,7 @@ class test_parser(unittest.TestCase):
             ),
             expansionlimit=0
         )
+
+    def test_command_arithmetic(self):
+        self.assertRaisesRegexp(NotImplementedError, 'arithmetic expansion',
+                                parse, 'a "$((2 + 2))"')

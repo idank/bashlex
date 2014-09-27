@@ -1,6 +1,6 @@
 import copy
 
-from bashlex import ast, flags, tokenizer
+from bashlex import ast, flags, tokenizer, errors
 
 def _recursiveparse(parserobj, base, sindex, tokenizerargs=None):
     # TODO: fix this hack that prevents mutual import
@@ -49,7 +49,8 @@ def _parsedolparen(parserobj, base, sindex):
 
 def _extractcommandsubst(parserobj, string, sindex, sxcommand=False):
     if string[sindex] == '(':
-        return _extractdelimitedstring(parserobj, string, sindex, '$(', '(', '(', sxcommand=True)
+        raise NotImplementedError('arithmetic expansion')
+        #return _extractdelimitedstring(parserobj, string, sindex, '$(', '(', '(', sxcommand=True)
     else:
         node, si = _parsedolparen(parserobj, string, sindex)
         si += 1
@@ -60,89 +61,89 @@ def _extractprocesssubst(parserobj, string, sindex):
     node, si = _parsedolparen(parserobj, string, sindex)
     return node, si + 1
 
-def _extractdelimitedstring(parserobj, string, sindex, opener, altopener, closer,
-                            sxcommand=False):
-    parts = []
-    incomment = False
-    passchar = False
-    nestinglevel = 1
-    i = sindex
+#def _extractdelimitedstring(parserobj, string, sindex, opener, altopener, closer,
+#                            sxcommand=False):
+#    parts = []
+#    incomment = False
+#    passchar = False
+#    nestinglevel = 1
+#    i = sindex
 
-    while nestinglevel:
-        if i >= len(string):
-            break
-        c = string[i]
-        if incomment:
-            if c == '\n':
-                incomment = False
-            i += 1
-            continue
-        elif passchar:
-            passchar = False
-            i += 1
-            continue
+#    while nestinglevel:
+#        if i >= len(string):
+#            break
+#        c = string[i]
+#        if incomment:
+#            if c == '\n':
+#                incomment = False
+#            i += 1
+#            continue
+#        elif passchar:
+#            passchar = False
+#            i += 1
+#            continue
 
-        if sxcommand and c == '#' and (i == 0 or string[i-1] == '\n' or
-                                       tokenizer._shellblank(string[i-1])):
-            incomment = True
-            i += 1
-            continue
+#        if sxcommand and c == '#' and (i == 0 or string[i-1] == '\n' or
+#                                       tokenizer._shellblank(string[i-1])):
+#            incomment = True
+#            i += 1
+#            continue
 
-        if c == '\\':
-            passchar = True
-            i += 1
-            continue
+#        if c == '\\':
+#            passchar = True
+#            i += 1
+#            continue
 
-        if sxcommand and string[i:i+2] == '$(':
-            si = i + 2
-            node, si = _extractcommandsubst(parserobj, string, si, sxcommand=sxcommand)
-            parts.append(node)
-            i = si + 1
-            continue
+#        if sxcommand and string[i:i+2] == '$(':
+#            si = i + 2
+#            node, si = _extractcommandsubst(parserobj, string, si, sxcommand=sxcommand)
+#            parts.append(node)
+#            i = si + 1
+#            continue
 
-        if string.startswith(opener, i):
-            si = i + len(opener)
-            nodes, si = _extractdelimitedstring(parserobj, string, si, opener, altopener,
-                                                closer, sxcommand=sxcommand)
-            parts.extend(nodes)
-            i = si + 1
-            continue
+#        if string.startswith(opener, i):
+#            si = i + len(opener)
+#            nodes, si = _extractdelimitedstring(parserobj, string, si, opener, altopener,
+#                                                closer, sxcommand=sxcommand)
+#            parts.extend(nodes)
+#            i = si + 1
+#            continue
 
-        if string.startswith(altopener, i):
-            si = i + len(altopener)
-            nodes, si = _extractdelimitedstring(parserobj, string, si, altopener, altopener,
-                                                closer, sxcommand=sxcommand)
-            parts.extend(nodes)
-            i = si + 1
-            continue
+#        if string.startswith(altopener, i):
+#            si = i + len(altopener)
+#            nodes, si = _extractdelimitedstring(parserobj, string, si, altopener, altopener,
+#                                                closer, sxcommand=sxcommand)
+#            parts.extend(nodes)
+#            i = si + 1
+#            continue
 
-        # 1327
-        if string.startswith(closer, i):
-            i += len(closer) - 1
-            nestinglevel -= 1
-            if nestinglevel == 0:
-                break
+#        # 1327
+#        if string.startswith(closer, i):
+#            i += len(closer) - 1
+#            nestinglevel -= 1
+#            if nestinglevel == 0:
+#                break
 
-        if c == '`':
-            si = i + 1
-            t = _stringextract(string, si, '`', sxcommand=sxcommand)
-            i = si + 1
-            continue
+#        if c == '`':
+#            si = i + 1
+#            t = _stringextract(string, si, '`', sxcommand=sxcommand)
+#            i = si + 1
+#            continue
 
-        if c in "'\"":
-            si = i +1
-            if c == '"':
-                i = _skipsinglequoted(string, si)
-            else:
-                i = _skipdoublequoted(string, si)
-            continue
+#        if c in "'\"":
+#            si = i +1
+#            if c == '"':
+#                i = _skipsinglequoted(string, si)
+#            else:
+#                i = _skipdoublequoted(string, si)
+#            continue
 
-        i += 1
+#        i += 1
 
-    if i == len(string) and nestinglevel:
-        raise errors.ParsingError('bad substitution: no closing %r in %s' % (closer, string))
+#    if i == len(string) and nestinglevel:
+#        raise errors.ParsingError('bad substitution: no closing %r in %s' % (closer, string))
 
-    return parts, i
+#    return parts, i
 
 def _paramexpand(parserobj, string, sindex):
     node = None
@@ -161,7 +162,8 @@ def _paramexpand(parserobj, string, sindex):
     elif c == '(':
         return _extractcommandsubst(parserobj, string, zindex + 1)
     elif c == '[':
-        return _extractarithmeticsubst(string, zindex + 1)
+        raise NotImplementedError('arithmetic substitution')
+        #return _extractarithmeticsubst(string, zindex + 1)
     else:
         tindex = zindex
         for zindex in range(tindex, len(string) + 1):
@@ -307,15 +309,15 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
             continue
 
             # 8513
-            if qdoublequotes or qheredocument:
-                sindex[0] += 1
-            else:
-                tindex = sindex[0] + 1
-                parts, sindex[0] = _stringextractdoublequoted(string, sindex[0])
-                if tindex == 1 and sindex[0] == len(string):
-                    quotedstate = 'wholly'
-                else:
-                    quotedstate = 'partially'
+            #if qdoublequotes or qheredocument:
+            #    sindex[0] += 1
+            #else:
+            #    tindex = sindex[0] + 1
+            #    parts, sindex[0] = _stringextractdoublequoted(string, sindex[0])
+            #    if tindex == 1 and sindex[0] == len(string):
+            #        quotedstate = 'wholly'
+            #    else:
+            #        quotedstate = 'partially'
 
         elif c == "'":
             # entire string surronded by single quotes, no expansion is
