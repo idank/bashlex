@@ -186,6 +186,7 @@ def p_command(p):
     if isinstance(p[1], ast.node):
         p[0] = p[1]
         if len(p) == 3:
+            assert p[0].kind == 'compound'
             p[0].redirects.extend(p[2])
             assert p[0].pos[0] < p[0].redirects[-1].pos[1]
             p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
@@ -218,6 +219,7 @@ def p_shell_command(p):
                         list=[ast.node(kind=kind, parts=parts, pos=_partsspan(parts))],
                         pos=_partsspan(parts))
 
+    assert p[0].kind == 'compound'
 
 def _makeparts(p):
     parts = []
@@ -287,12 +289,23 @@ def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
                     | FUNCTION WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
                     | FUNCTION WORD newline_list function_body'''
-    raise NotImplementedError('functions')
+    parts = _makeparts(p)
+    body = parts[-1]
+    name = parts[ast.findfirstkind(parts, 'word')]
+
+    p[0] = ast.node(kind='function', name=name, body=body, parts=parts,
+                    pos=_partsspan(parts))
 
 def p_function_body(p):
     '''function_body : shell_command
                      | shell_command redirection_list'''
-    raise NotImplementedError('functions')
+    assert p[1].kind == 'compound'
+
+    p[0] = p[1]
+    if len(p) == 3:
+        p[0].redirects.extend(p[2])
+        assert p[0].pos[0] < p[0].redirects[-1].pos[1]
+        p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
 
 def p_subshell(p):
     '''subshell : LEFT_PAREN compound_list RIGHT_PAREN'''

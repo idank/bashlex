@@ -85,6 +85,9 @@ def fornode(s, *parts):
 def whilenode(s, *parts):
     return ast.node(kind='while', parts=list(parts), s=s)
 
+def functionnode(s, name, body, *parts):
+    return ast.node(kind='function', name=name, body=body, parts=list(parts), s=s)
+
 class test_parser(unittest.TestCase):
     def assertASTEquals(self, s, expected, **parserargs):
         results = parse(s, **parserargs)
@@ -997,3 +1000,69 @@ class test_parser(unittest.TestCase):
     def test_command_arithmetic(self):
         self.assertRaisesRegexp(NotImplementedError, 'arithmetic expansion',
                                 parse, 'a "$((2 + 2))"')
+
+    def test_function_no_function_keyword(self):
+        s = 'a() { b; }'
+        name = wordnode('a')
+        body = compoundnode('{ b; }',
+                 reservedwordnode('{', '{'),
+                 listnode('b;',
+                   commandnode('b', wordnode('b')),
+                   operatornode(';', ';'),
+                 ),
+                 reservedwordnode('}', '}'),
+               )
+
+        self.assertASTEquals(s,
+                              functionnode(s, name, body,
+                                name,
+                                reservedwordnode('(', '('),
+                                reservedwordnode(')', ')'),
+                                body
+                              )
+                            )
+
+    def test_function_with_keyword(self):
+        s = 'function a() { b; }'
+        name = wordnode('a')
+        body = compoundnode('{ b; }',
+                 reservedwordnode('{', '{'),
+                 listnode('b;',
+                   commandnode('b', wordnode('b')),
+                   operatornode(';', ';'),
+                 ),
+                 reservedwordnode('}', '}'),
+               )
+
+        self.assertASTEquals(s,
+                              functionnode(s, name, body,
+                                reservedwordnode('function', 'function'),
+                                name,
+                                reservedwordnode('(', '('),
+                                reservedwordnode(')', ')'),
+                                body
+                              )
+                            )
+
+    def test_function_parenthesis_optional(self):
+        s = 'function a { b; }'
+        name = wordnode('a')
+        body = compoundnode('{ b; }',
+                 reservedwordnode('{', '{'),
+                 listnode('b;',
+                   commandnode('b', wordnode('b')),
+                   operatornode(';', ';'),
+                 ),
+                 reservedwordnode('}', '}'),
+               )
+        self.assertASTEquals(s,
+                              functionnode(s, name, body,
+                                reservedwordnode('function', 'function'),
+                                name,
+                                body
+                              )
+                            )
+
+        s = 'a { b; }'
+        self.assertRaisesRegexp(errors.ParsingError, "unexpected token '}'.*7",
+                                parse, s)

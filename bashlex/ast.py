@@ -66,6 +66,11 @@ class nodevisitor(object):
             if dochild is None or dochild:
                 for child in n.parts:
                     self.visit(child)
+        elif k == 'function':
+            dochild = self._visitnode(n, n.name, n.body, n.parts)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         elif k == 'redirect':
             dochild = self._visitnode(n, n.input, n.type, n.output, n.heredoc)
             if dochild is None or dochild:
@@ -112,6 +117,8 @@ class nodevisitor(object):
         pass
     def visitcommand(self, n, parts):
         pass
+    def visitfunction(self, n, name, body, parts):
+        pass
     def visitword(self, n, word):
         pass
     def visitassignment(self, n, word):
@@ -153,6 +160,8 @@ def _dump(tree, indent='  '):
                     fields.append((k, '\n' + (indent * llevel) + _format(v, llevel)))
                 else:
                     fields.append((k, _format(v, level)))
+            if kind == 'function':
+                fields = [f for f in fields if f[0] not in ('name', 'body')]
             v = d.pop('parts', None)
             if v:
                 fields.append(('parts', _format(v, level)))
