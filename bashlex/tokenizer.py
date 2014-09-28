@@ -977,7 +977,7 @@ class tokenizer(object):
                 return i
 
             # XXX general.c 289
-            if c == '+' and value[i+1] == '=':
+            if c == '+' and i + 1 < len(value) and value[i+1] == '=':
                 return i+1
 
             if not legalvariablechar(c):

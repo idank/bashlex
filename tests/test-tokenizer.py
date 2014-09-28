@@ -241,6 +241,17 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.ASSIGNMENT_WORD, 'a=b', [0, 3],
                             flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
 
+        s = 'a+=b'
+        self.assertTokens(s, [
+                          t(tt.ASSIGNMENT_WORD, 'a+=b', [0, 4],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
+    def test_plus_at_end_of_word(self):
+        s = 'a+ b'
+        self.assertTokens(s, [
+                          t(tt.WORD, 'a+', [0, 2]),
+                          t(tt.WORD, 'b', [3, 4])])
+
     def test_heredoc(self):
         s = 'a <<EOF'
         self.assertTokens(s, [
