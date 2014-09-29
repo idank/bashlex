@@ -151,11 +151,13 @@ def _paramexpand(parserobj, string, sindex):
     c = string[zindex] if zindex < len(string) else None
     if c and c in '0123456789$#?-!*@':
         # XXX 7685
-        node = ast.node(kind='parameter', value=string[sindex:zindex+1],
+        node = ast.node(kind='parameter', value=c,
                         pos=(sindex, zindex+1))
     elif c == '{':
+        # XXX 7863
+        # TODO not start enough, doesn't consider escaping
         zindex = string.find('}', zindex + 1)
-        node = ast.node(kind='parameter', value=string[sindex:zindex+1],
+        node = ast.node(kind='parameter', value=string[sindex+2:zindex],
                         pos=(sindex, zindex+1))
         # TODO
         # return _parameterbraceexpand(string, zindex)
@@ -173,7 +175,7 @@ def _paramexpand(parserobj, string, sindex):
                 break
         temp1 = string[sindex:zindex]
         if temp1:
-            return (ast.node(kind='variable', value=temp1, pos=(sindex, zindex)),
+            return (ast.node(kind='parameter', value=temp1[1:], pos=(sindex, zindex)),
                     zindex)
 
     if zindex < len(string):

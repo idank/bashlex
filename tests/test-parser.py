@@ -25,9 +25,6 @@ def assignmentnode(word, s=None, parts=None):
 def parameternode(value, s):
     return ast.node(kind='parameter', value=value, s=s)
 
-def variablenode(value, s):
-    return ast.node(kind='variable', value=value, s=s)
-
 def heredocnode(value, s=None):
     if s is None:
         s = value
@@ -239,24 +236,24 @@ class test_parser(unittest.TestCase):
                 commandnode(s,
                   wordnode('a'),
                   wordnode('$1', '$1', [
-                    parameternode('$1', '$1'),
+                    parameternode('1', '$1'),
                   ]),
                   wordnode('$foo_bar', '$foo_bar', [
-                    variablenode('$foo_bar', '$foo_bar'),
+                    parameternode('foo_bar', '$foo_bar'),
                   ]),
                   wordnode('$@ $#', '"$@ $#"', [
-                      parameternode('$@', '$@'),
-                      parameternode('$#', '$#')
+                      parameternode('@', '$@'),
+                      parameternode('#', '$#')
                   ]),
                   wordnode('~foo', '~foo', [
                     tildenode('~foo', '~foo'),
                   ]),
                   wordnode(' ~bar', '" ~bar"'),
                   wordnode('${a}', '${a}', [
-                    parameternode('${a}', '${a}'),
+                    parameternode('a', '${a}'),
                   ]),
                   wordnode('${}', '"${}"', [
-                      parameternode('${}', '${}'),
+                      parameternode('', '${}'),
                   ]),
                 )
               )
@@ -891,7 +888,7 @@ class test_parser(unittest.TestCase):
                                     wordnode('b'),
                                   )
                                 ),
-                                variablenode('$c', '$c')
+                                parameternode('c', '$c')
                                ]),
                                wordnode('d'),
                              )
@@ -982,7 +979,7 @@ class test_parser(unittest.TestCase):
                     wordnode('b'),
                   )
                 ),
-                parameternode('$1', '$1'),
+                parameternode('1', '$1'),
               ])
             ),
         )
@@ -991,7 +988,7 @@ class test_parser(unittest.TestCase):
             commandnode(s,
               wordnode('a'),
               wordnode('$(b)c $1', '"$(b)"c" $1"', [
-                parameternode('$1', '$1'),
+                parameternode('1', '$1'),
               ])
             ),
             expansionlimit=0
@@ -1066,3 +1063,23 @@ class test_parser(unittest.TestCase):
         s = 'a { b; }'
         self.assertRaisesRegexp(errors.ParsingError, "unexpected token '}'.*7",
                                 parse, s)
+
+    def test_parameter_braces(self):
+        return
+
+        # FIXME
+        s = 'a ${b\\}c}'
+
+        self.assertASTEquals(s,
+            commandnode(s,
+              wordnode('a'),
+              wordnode('$(b)c $1', '"$(b)"c" $1"', [
+                comsubnode('$(b)',
+                  commandnode('b',
+                    wordnode('b'),
+                  )
+                ),
+                parameternode('1', '$1'),
+              ])
+            ),
+        )

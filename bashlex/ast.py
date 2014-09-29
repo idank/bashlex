@@ -83,7 +83,7 @@ class nodevisitor(object):
             if dochild is None or dochild:
                 for child in n.parts:
                     self.visit(child)
-        elif k in ('variable', 'parameter', 'tilde', 'heredoc'):
+        elif k in ('parameter', 'tilde', 'heredoc'):
             self._visitnode(n, n.value)
         elif k in ('commandsubstitution', 'processsubstitution'):
             dochild = self._visitnode(n, n.command)
@@ -126,8 +126,6 @@ class nodevisitor(object):
     def visitreservedword(self, n, word):
         pass
     def visitparameter(self, n, value):
-        pass
-    def visitvariable(self, n, value):
         pass
     def visittilde(self, n, value):
         pass
