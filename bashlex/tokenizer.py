@@ -914,7 +914,7 @@ class tokenizer(object):
             if open == "'":
                 if allowesc and c == "\\":
                     passnextchar = True
-                    continue
+                continue
             if c == "\\":
                 passnextchar = True
             if dolbrace:

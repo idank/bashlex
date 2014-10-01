@@ -231,6 +231,10 @@ class test_tokenizer(unittest.TestCase):
         self.assertTokens(s, [
                           t(tt.WORD, '${$\'a\'}', [0, len(s)], hasdollarset)])
 
+        s = "'a\\'"
+        self.assertTokens(s, [
+                          t(tt.WORD, "'a\\'", [0, len(s)], set([flags.word.QUOTED]))])
+
         #s = '"\\\n"'
         #self.assertEquals(tokenize(s), [
         #                  t(tt.WORD, '"\\a"', flags=set([flags.word.QUOTED]))])

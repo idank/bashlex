@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='bashlex',
-    version='0.5',
+    version='0.6',
     url='https://github.com/idank/bashlex.git',
     license='GPLv3+',
     author='Idan Kamara',
