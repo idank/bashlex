@@ -1064,6 +1064,21 @@ class test_parser(unittest.TestCase):
         self.assertRaisesRegexp(errors.ParsingError, "unexpected token '}'.*7",
                                 parse, s)
 
+    def test_command_substitution_dollar_semicolon(self):
+        s = '$(a;b)'
+        self.assertASTEquals(s,
+                          commandnode('$(a;b)',
+                          wordnode('$(a;b)', '$(a;b)', [
+                            comsubnode('$(a;b)',
+                              listnode('a;b',
+                                  commandnode('a', wordnode('a'),),
+                                  operatornode(';', ';'),
+                                  commandnode('b', wordnode('b'),),
+                                )),
+                          ]),
+                        )
+                        )
+
     def test_parameter_braces(self):
         return
 
