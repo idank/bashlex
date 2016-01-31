@@ -545,6 +545,7 @@ yaccparser = yacc.yacc(tabmodule='bashlex.parsetab',
 # some hack to fix yacc's reduction on command substitutions
 yaccparser.action[45]['RIGHT_PAREN'] = -155
 yaccparser.action[11]['RIGHT_PAREN'] = -148
+yaccparser.action[133]['RIGHT_PAREN'] = -154
 
 for tt in tokenizer.tokentype:
     yaccparser.action[62][tt.name] = -1
