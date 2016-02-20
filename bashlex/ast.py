@@ -33,7 +33,9 @@ class nodevisitor(object):
 
     def visit(self, n):
         k = n.kind
-        if k == 'operator':
+        if k == 'newline':
+            self.visitnode(n)
+        elif k == 'operator':
             self._visitnode(n, n.op)
         elif k == 'list':
             dochild = self._visitnode(n, n.parts)
@@ -86,9 +88,10 @@ class nodevisitor(object):
         elif k in ('parameter', 'tilde', 'heredoc'):
             self._visitnode(n, n.value)
         elif k in ('commandsubstitution', 'processsubstitution'):
-            dochild = self._visitnode(n, n.command)
+            dochild = self._visitnode(n, n.parts)
             if dochild is None or dochild:
-                self.visit(n.command)
+                for child in n.parts:
+                    self.visit(child)
         else:
             raise ValueError('unknown node kind %r' % k)
         self.visitnodeend(n)

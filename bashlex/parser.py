@@ -26,6 +26,9 @@ def p_inputunit(p):
         # accept right here in case the input contains more lines that are
         # not part of the current command
         p.accept()
+    if p.slice[1].ttype == tokenizer.tokentype.NEWLINE:
+        p[0] = ast.node(kind='newline', pos=(p.lexpos(1), p.lexpos(1)))
+        p.accept()
 
 def p_word_list(p):
     '''word_list : WORD
@@ -209,7 +212,7 @@ def p_shell_command(p):
         p[0] = p[1]
     else:
         # while or until
-        assert p[2].kind == 'list'
+        # assert p[2].kind == 'list'
 
         parts = _makeparts(p)
         kind = parts[0].word
@@ -550,6 +553,7 @@ yaccparser.action[133]['RIGHT_PAREN'] = -154
 for tt in tokenizer.tokentype:
     yaccparser.action[62][tt.name] = -1
     yaccparser.action[63][tt.name] = -141
+    yaccparser.action[8][tt.name] = -2
 
 def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False):
     '''like parse, but only consumes a single top level node, e.g. parsing
@@ -608,6 +612,7 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
         for tree in parts:
             ast.posconverter(s).visit(tree)
 
+    parts = filter(lambda x: x.kind != 'newline', parts)
     return parts
 
 class _parser(object):
