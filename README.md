@@ -65,6 +65,27 @@ Currently the parser has no support for:
 - the more complicated parameter expansions such as ${parameter#word} are taken
   literally and do not produce child nodes
 
+## Debugging
+
+It can be useful to debug bashlex in conjunction to GNU bash, since it's mostly
+a transliteration. Comments in the code sometimes contain line references to
+bash's source code, e.g. `# bash/parse.y L2626`.
+
+    $ git clone git://git.sv.gnu.org/bash.git
+    $ cd bash
+    $ git checkout df2c55de9c87c2ee8904280d26e80f5c48dd6434 # commit used in
+    translating the code
+    $ ./configure
+    $ make CFLAGS=-g CFLAGS_FOR_BUILD=-g # debug info and don't optimize
+    $ gdb --args ./bash -c 'echo foo'
+
+Useful things to look at when debugging bash:
+
+- variables yylval, shell_input_line, shell_input_line_index
+- breakpoint at `yylex` (token numbers to names is in file parser-built)
+- breakpoint at `read_token_word` (corresponds to `bashlex/tokenizer._readtokenword`)
+- `xparse_dolparen, expand_word_internal` (called when parsing $())
+
 ## Motivation
 
 I wrote this library for another project of mine, [explainshell](http://www.explainshell.com)

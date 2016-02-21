@@ -192,6 +192,7 @@ def _adjustpositions(node_, base, endlimit):
     visitor.visit(node_)
 
 def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quoted, isexp):
+    # bash/subst.c L8132
     istring = ''
     parts = []
     tindex = [0]

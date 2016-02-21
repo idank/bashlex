@@ -201,7 +201,7 @@ class tokenizer(object):
         self._shell_input_line = s
         self._added_newline = False
         if self._shell_input_line[-1] != '\n':
-            self._shell_input_line += '\n' # 2431
+            self._shell_input_line += '\n' # bash/parse.y L2431
             self._added_newline = True
         self._shell_input_line_index = 0
         # self._shell_input_line_terminator = None
@@ -273,7 +273,7 @@ class tokenizer(object):
         if (self._parserstate & parserflags.EOFTOKEN and
             self._current_token.ttype == self._shell_eof_token):
             self._current_token = eoftoken
-            # XXX 2626
+            # bash/parse.y L2626
         self._parserstate.discard(parserflags.EOFTOKEN)
 
         return self._current_token
@@ -287,7 +287,7 @@ class tokenizer(object):
             self._token_to_read = None
             return t
 
-        # 2989 COND_COMMAND
+        # bashlex/parse.y L2989 COND_COMMAND
         character = self._getc(True)
         while character is not None and _shellblank(character):
             character = self._getc(True)
@@ -303,7 +303,7 @@ class tokenizer(object):
         self._recordpos(1)
 
         if character == '\n':
-            # XXX 3034 ALIAS
+            # bashlex/parse.y L3034 ALIAS
             heredoc.gatherheredocuments(self)
 
             self._parserstate.discard(parserflags.ASSIGNOK)
@@ -333,7 +333,7 @@ class tokenizer(object):
                     return tokentype.GREATER_GREATER
                 elif character == ';':
                     self._parserstate |= parserflags.CASEPAT
-                    # 3085 ALIAS
+                    # bashlex/parse.y L3085 ALIAS
                     peek_char = self._getc()
                     if peek_char == '&':
                         return tokentype.SEMI_SEMI_AND
@@ -344,7 +344,7 @@ class tokenizer(object):
                     return tokentype.AND_AND
                 elif character == '|':
                     return tokentype.OR_OR
-                # XXX 3105
+                # bashlex/parse.y L3105
             elif both == '<&':
                 return tokentype.LESS_AND
             elif both == '>&':
@@ -368,7 +368,7 @@ class tokenizer(object):
             self._ungetc(peek_char)
             if character == ')' and self._last_read_token.value == '(' and self._token_before_that.ttype == tokentype.WORD:
                 self._parserstate.add(parserflags.ALLOWOPNBRC)
-                # XXX 3155
+                # bashlex/parse.y L3155
 
             if character == '(' and not self._parserstate & parserflags.CASEPAT:
                 self._parserstate.add(parserflags.SUBSHELL)
@@ -462,7 +462,7 @@ class tokenizer(object):
                 self._ungetc(peek_char)
                 return True
 
-            # 4699 ARRAY_VARS
+            # bashlex/parse.y L4699 ARRAY_VARS
 
         def handleescapedchar():
             tokenword.append(c)
@@ -504,11 +504,11 @@ class tokenizer(object):
                     handleshellquote()
                     gotonext = True
                     # goto next_character
-                # XXX 4542
-                # XXX 4567
+                # bashlex/parse.y L4542
+                # bashlex/parse.y L4567
                 elif _shellexp(c):
                     gotonext = not handleshellexp()
-                    # XXX 4699
+                    # bashlex/parse.y L4699
                 if not gotonext:
                     if _shellbreak(c):
                         self._ungetc(c)
@@ -536,7 +536,7 @@ class tokenizer(object):
         if d['all_digit_token'] and (c in '<>' or self._last_read_token.ttype in (tokentype.LESS_AND, tokentype.GREATER_AND)) and shutils.legal_number(tokenword):
             return self._createtoken(tokentype.NUMBER, int(tokenword))
 
-        # 4811
+        # bashlex/parse.y L4811
         specialtokentype = self._specialcasetokens(tokenword)
         if specialtokentype:
             return self._createtoken(specialtokentype, tokenword)
@@ -579,7 +579,7 @@ class tokenizer(object):
                 if self._parserstate & parserflags.COMPASSIGN:
                     tokenword.flags.add(wordflags.NOGLOB)
 
-        # XXX 4865
+        # bashlex/parse.y L4865
         if self._command_token_position(self._last_read_token):
             pass
 
@@ -598,7 +598,7 @@ class tokenizer(object):
             self._parserstate.add(parserflags.ALLOWOPNBRC)
             self._function_dstart = self._line_number
         elif self._last_read_token.ttype in (tokentype.CASE, tokentype.SELECT, tokentype.FOR):
-            pass # XXX 4907
+            pass # bashlex/parse.y L4907
 
         return tokenword
 
@@ -633,7 +633,7 @@ class tokenizer(object):
             if c is None:
                 raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 
-            # 3571
+            # bashlex/parse.y L3571
             if c == '\n':
                 if readingheredocdelim and heredelim:
                     readingheredocdelim = False
@@ -649,7 +649,7 @@ class tokenizer(object):
                         lexfirstind = -1
                     else:
                         lexfirstind = len(ret) + 1
-            # 3599
+            # bashlex/parse.y L3599
             if insideheredoc and c == close and count == 1:
                 tind = lexfirstind
                 while stripdoc and ret[tind] == '\t':
@@ -691,7 +691,7 @@ class tokenizer(object):
                 ret += c
                 continue
 
-            # 3686
+            # bashlex/parse.y L3686
             if readingheredocdelim:
                 if lexfirstind == -1 and not _shellbreak(c):
                     lexfirstind = len(ret)
@@ -725,7 +725,7 @@ class tokenizer(object):
                     ret = ret[:-1]
                     self._ungetc(peekc)
 
-            # 3761
+            # bashlex/parse.y L3761
             if reservedwordok:
                 if c.islower():
                     ret += c
@@ -788,7 +788,7 @@ class tokenizer(object):
             if c == '\\':
                 passnextchar = True
 
-            # 3897
+            # bashlex/parse.y L3897
             if _shellquote(c):
                 self._push_delimiter(c)
                 try:
@@ -858,7 +858,7 @@ class tokenizer(object):
             if open == c:
                 count -= 1
 
-            # 3486
+            # bashlex/parse.y L3486
             if c == '(':
                 return self._parse_comsub(None, '(', ')',
                                           parsingcommand=True,
@@ -878,7 +878,7 @@ class tokenizer(object):
             if c is None:
                 raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 
-            # 3285
+            # bashlex/parse.y L3285
             # if c == '\n':
             #    continue
 
@@ -943,7 +943,7 @@ class tokenizer(object):
                     finally:
                         self._pop_delimiter()
 
-                    # 3419
+                    # bashlex/parse.y L3419
                     if sawdollar and c == "'":
                         pass
                     elif sawdollar and c == '"':
@@ -976,7 +976,7 @@ class tokenizer(object):
             if c == '=':
                 return i
 
-            # XXX general.c 289
+            # bash/general.c L289
             if c == '+' and i + 1 < len(value) and value[i+1] == '=':
                 return i+1
 
@@ -997,7 +997,7 @@ class tokenizer(object):
     def _reserved_word_acceptable(self, tok):
         if not tok or (tok.ttype in _reserved or tok.value in _reserved):
             return True
-        # 4955 cOPROCESS_SUPPORT
+        # bash/parse.y L4955 cOPROCESS_SUPPORT
 
         if (self._last_read_token.ttype == tokentype.WORD and
             self._token_before_that.ttype == tokentype.FUNCTION):
@@ -1028,7 +1028,7 @@ class tokenizer(object):
             self._eol_ungetc_lookahead = None
             return c
 
-        # XXX 2220
+        # bash/parse.y L2220
 
         while True:
             if self._shell_input_line_index < len(self._shell_input_line):
@@ -1127,7 +1127,7 @@ class tokenizer(object):
             self._parserstate.discard(parserflags.ALLOWOPNBRC)
             if tokstr == '{':
                 self._open_brace_count += 1
-                # 2887
+                # bash/parse.y L2887
                 return tokentype.LEFT_CURLY
 
         if (self._last_read_token.ttype == tokentype.ARITH_FOR_EXPRS and
