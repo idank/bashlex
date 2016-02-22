@@ -168,6 +168,9 @@ class token(object):
     def __nonzero__(self):
         return not (self.ttype is None and self.value is None)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __eq__(self, other):
         return isinstance(other, token) and (self.type == other.type and
                                              self.value == other.value and
@@ -629,7 +632,6 @@ class tokenizer(object):
 
         while count:
             c = self._getc(doublequotes != "'" and not insidecomment and not passnextchar)
-
             if c is None:
                 raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 

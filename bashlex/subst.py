@@ -25,7 +25,7 @@ def _recursiveparse(parserobj, base, sindex, tokenizerargs=None):
     endp = node.pos[1]
     _adjustpositions(node, sindex, len(base))
 
-    return node, endp
+    return node, endp, p.tok._current_token.nopos()
 
 def _parsedolparen(parserobj, base, sindex):
     copiedps = copy.copy(parserobj.parserstate)
@@ -33,33 +33,44 @@ def _parsedolparen(parserobj, base, sindex):
     copiedps.add(flags.parser.EOFTOKEN)
     string = base[sindex:]
 
-    tokenizerargs = {'eoftoken' : tokenizer.token(tokenizer.tokentype.RIGHT_PAREN, ')'),
+    eoftoken = tokenizer.token(tokenizer.tokentype.RIGHT_PAREN, ')')
+    tokenizerargs = {'eoftoken' : eoftoken,
                      'parserstate' : copiedps,
                      'lastreadtoken' : parserobj.tok._last_read_token,
                      'tokenbeforethat' : parserobj.tok._token_before_that,
                      'twotokensago' : parserobj.tok._two_tokens_ago}
 
-    node, endp = _recursiveparse(parserobj, base, sindex, tokenizerargs)
+    nodes = []
+    node, endp, token = _recursiveparse(parserobj, base, sindex, dict(tokenizerargs))
+    nodes.append(node)
+    while sindex + endp < len(base) and token != eoftoken:
+        while base[sindex+endp].isspace():
+            endp += 1
+            continue
+        node, endpp, token = _recursiveparse(parserobj, base, sindex + endp, dict(tokenizerargs))
+        nodes.append(node)
+        endp += endpp
+
 
     if string[endp] != ')':
         while endp > 0 and string[endp-1] == '\n':
             endp -= 1
 
-    return node, sindex + endp
+    return nodes, sindex + endp
 
 def _extractcommandsubst(parserobj, string, sindex, sxcommand=False):
     if string[sindex] == '(':
         raise NotImplementedError('arithmetic expansion')
         #return _extractdelimitedstring(parserobj, string, sindex, '$(', '(', '(', sxcommand=True)
     else:
-        node, si = _parsedolparen(parserobj, string, sindex)
+        nodes, si = _parsedolparen(parserobj, string, sindex)
         si += 1
-        return ast.node(kind='commandsubstitution', command=node, pos=(sindex-2, si)), si
+        return ast.node(kind='commandsubstitution', parts=nodes, pos=(sindex-2, si)), si
 
 def _extractprocesssubst(parserobj, string, sindex):
     #return _extractdelimitedstring(tok, string, sindex, starter, '(', ')', sxcommand=True)
-    node, si = _parsedolparen(parserobj, string, sindex)
-    return node, si + 1
+    nodes, si = _parsedolparen(parserobj, string, sindex)
+    return nodes, si + 1
 
 #def _extractdelimitedstring(parserobj, string, sindex, opener, altopener, closer,
 #                            sxcommand=False):
@@ -222,9 +233,9 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
             else:
                 tindex = sindex[0] + 1
 
-                node, sindex[0] = _extractprocesssubst(parserobj, string, tindex)
+                nodes, sindex[0] = _extractprocesssubst(parserobj, string, tindex)
 
-                parts.append(ast.node(kind='processsubstitution', command=node,
+                parts.append(ast.node(kind='processsubstitution', parts=nodes,
                                       pos=(tindex - 2, sindex[0])))
                 istring += string[tindex - 2:sindex[0]]
                 # goto dollar_add_string
@@ -290,7 +301,8 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
                         sindex[0] = x
 
                         word = string[tindex+1:sindex[0]]
-                        command, ttindex = _recursiveparse(parserobj, word, 0)
+                        # FIXME: handle new lines
+                        command, ttindex, _ = _recursiveparse(parserobj, word, 0)
                         _adjustpositions(command, tindex+1, len(string))
                         ttindex += 1 # ttindex is on the closing char
 
@@ -299,7 +311,7 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
                         sindex[0] += 1
 
                         node = ast.node(kind='commandsubstitution',
-                                        command=command,
+                                        parts=[command],
                                         pos=(tindex, sindex[0]))
                         parts.append(node)
                         istring += string[tindex:sindex[0]]

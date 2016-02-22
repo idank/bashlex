@@ -67,11 +67,11 @@ def compoundnode(s, *parts, **kwargs):
     assert not kwargs
     return ast.node(kind='compound', s=s, list=list(parts), redirects=redirects)
 
-def procsubnode(s, command):
-    return ast.node(kind='processsubstitution', s=s, command=command)
+def procsubnode(s, parts):
+    return ast.node(kind='processsubstitution', s=s, parts=parts)
 
-def comsubnode(s, command):
-    return ast.node(kind='commandsubstitution', s=s, command=command)
+def comsubnode(s, parts):
+    return ast.node(kind='commandsubstitution', s=s, parts=parts)
 
 def ifnode(s, *parts):
     return ast.node(kind='if', parts=list(parts), s=s)
@@ -143,13 +143,30 @@ class test_parser(unittest.TestCase):
                   redirectnode('2>&1', 2, '>&', 1)))
 
     def test_multiline(self):
-        s = 'a\nb'
-        self.assertASTsEquals(s, [
-                              commandnode('a',
-                                wordnode('a')),
-                              commandnode('b',
-                                wordnode('b'))
-                              ])
+        for s in ('a\nb', 'a\n\nb'):
+            self.assertASTsEquals(s, [
+                                  commandnode('a',
+                                    wordnode('a')),
+                                  commandnode('b',
+                                    wordnode('b'))
+                                  ])
+
+        for comsub in ('$(b\nc)', '$(b\n\nc)'):
+            s = 'a %s' % comsub
+            self.assertASTsEquals(s, [
+                                    commandnode('a %s' % comsub,
+                                      wordnode('a'),
+                                      wordnode(comsub, comsub, [
+                                        comsubnode(comsub, [
+                                          commandnode('b', wordnode('b')),
+                                          commandnode('c', wordnode('c')),
+                                        ])
+                                      ]),
+                                    ),
+                                  ])
+
+        # TODO
+        s = 'a `b\nc`'
 
     def test_pipeline(self):
         s = 'a | b'
@@ -212,20 +229,20 @@ class test_parser(unittest.TestCase):
         self.assertASTEquals(s,
             commandnode(s,
               wordnode(s, s, [
-                comsubnode(s,
+                comsubnode(s, [
                     commandnode('$<$(a) b',
                         wordnode('$'),
                         redirectnode('<$(a)', None, '<',
                           wordnode('$(a)', '$(a)', [
-                            comsubnode('$(a)',
+                            comsubnode('$(a)', [
                                 commandnode('a',
                                     wordnode('a'))
-                            )
+                            ])
                           ])
                         ),
                         wordnode('b'),
                     )
-                )
+                ])
               ])
             )
         )
@@ -264,17 +281,17 @@ class test_parser(unittest.TestCase):
             commandnode(s,
               wordnode('a'),
               wordnode('<(b $(c))', '<(b $(c))', [
-                procsubnode('<(b $(c))',
+                procsubnode('<(b $(c))', [
                   commandnode('b $(c)',
                     wordnode('b'),
                     wordnode('$(c)', '$(c)', [
-                      comsubnode('$(c)',
+                      comsubnode('$(c)', [
                           commandnode('c',
                               wordnode('c'))
-                      )]
+                      ])]
                     )
                   )
-                )
+                ])
               ])
             )
         )
@@ -284,16 +301,16 @@ class test_parser(unittest.TestCase):
             commandnode(s,
                 wordnode('a'),
                 wordnode('`b`', '`b`', [
-                    comsubnode('`b`',
+                    comsubnode('`b`', [
                         commandnode('b',
                             wordnode('b'))
-                    ),
+                    ]),
                 ]),
                 wordnode('`c`', '"`c`"', [
-                    comsubnode('`c`',
+                    comsubnode('`c`', [
                         commandnode('c',
                             wordnode('c'))
-                    ),
+                    ]),
                 ]),
                 wordnode('`c`', "'`c`'")
             )
@@ -698,22 +715,22 @@ class test_parser(unittest.TestCase):
                 commandnode(s,
                   wordnode("$(a)", "'$(a)'"),
                   wordnode("$(b)", '"$(b)"', [
-                      comsubnode("$(b)",
+                      comsubnode("$(b)", [
                         commandnode("b", wordnode("b"))
-                      )
+                      ])
                   ])))
 
         s = "\"$(a \"b\" 'c')\" '$(a \"b\" 'c')'"
         self.assertASTEquals(s,
                 commandnode(s,
                   wordnode("$(a \"b\" 'c')", "\"$(a \"b\" 'c')\"", [
-                      comsubnode("$(a \"b\" 'c')",
+                      comsubnode("$(a \"b\" 'c')", [
                           commandnode("a \"b\" 'c'",
                               wordnode('a'),
                               wordnode('b', '"b"'),
                               wordnode('c', "'c'")
                           )
-                      )
+                      ])
                   ]),
                   wordnode("$(a \"b\" 'c')", "'$(a \"b\" 'c')'")
                 ))
@@ -779,10 +796,10 @@ class test_parser(unittest.TestCase):
                   wordnode('a', 'a'),
                   redirectnode('<<<$(b)', None, '<<<',
                     wordnode('$(b)', '$(b)', [
-                      comsubnode('$(b)',
+                      comsubnode('$(b)', [
                         commandnode('b',
                           wordnode('b'))
-                      )
+                      ])
                     ])
                   )
                 )
@@ -797,9 +814,9 @@ class test_parser(unittest.TestCase):
                               wordnode('a'),
                               reservedwordnode('in', 'in'),
                               wordnode('$(b)c', '$(b)"c"', [
-                                comsubnode('$(b)',
+                                comsubnode('$(b)', [
                                   commandnode('b', wordnode('b'))
-                                )
+                                ])
                               ]),
                               reservedwordnode(';', ';'),
                               reservedwordnode('do', 'do'),
@@ -869,11 +886,11 @@ class test_parser(unittest.TestCase):
         self.assertASTEquals(s,
                              commandnode(s,
                                assignmentnode('a=$(b)', 'a=$(b)', [
-                                comsubnode('$(b)',
+                                comsubnode('$(b)', [
                                   commandnode('b',
                                     wordnode('b'),
                                   )
-                                )
+                                ])
                                ]),
                                wordnode('c'),
                              )
@@ -883,11 +900,11 @@ class test_parser(unittest.TestCase):
         self.assertASTEquals(s,
                              commandnode(s,
                                assignmentnode('a=$(b) $c', 'a="$(b) $c"', [
-                                comsubnode('$(b)',
+                                comsubnode('$(b)', [
                                   commandnode('b',
                                     wordnode('b'),
                                   )
-                                ),
+                                ]),
                                 parameternode('c', '$c')
                                ]),
                                wordnode('d'),
@@ -929,12 +946,12 @@ class test_parser(unittest.TestCase):
                 commandnode(s,
                   wordnode('a'),
                   wordnode('$(b $(c $(d $(e))))', '$(b $(c $(d $(e))))', [
-                    comsubnode('$(b $(c $(d $(e))))',
+                    comsubnode('$(b $(c $(d $(e))))', [
                       commandnode('b $(c $(d $(e)))',
                         wordnode('b'),
                         wordnode('$(c $(d $(e)))')
                       )
-                    )
+                    ])
                   ])
                 ),
                 expansionlimit=1
@@ -950,18 +967,18 @@ class test_parser(unittest.TestCase):
                 commandnode(s,
                   wordnode('a'),
                   wordnode('$(b $(c))', '$(b $(c))', [
-                    comsubnode('$(b $(c))',
+                    comsubnode('$(b $(c))', [
                       commandnode('b $(c)',
                         wordnode('b'),
                         wordnode('$(c)', '$(c)', [
-                          comsubnode('$(c)',
+                          comsubnode('$(c)', [
                             commandnode('c',
                               wordnode('c')
                             )
-                          )
+                          ])
                         ])
                       )
-                    )
+                    ])
                   ])
                 ),
                 expansionlimit=i
@@ -974,11 +991,11 @@ class test_parser(unittest.TestCase):
             commandnode(s,
               wordnode('a'),
               wordnode('$(b)c $1', '"$(b)"c" $1"', [
-                comsubnode('$(b)',
+                comsubnode('$(b)', [
                   commandnode('b',
                     wordnode('b'),
                   )
-                ),
+                ]),
                 parameternode('1', '$1'),
               ])
             ),
@@ -1069,12 +1086,13 @@ class test_parser(unittest.TestCase):
         self.assertASTEquals(s,
                           commandnode('$(a;b)',
                           wordnode('$(a;b)', '$(a;b)', [
-                            comsubnode('$(a;b)',
+                            comsubnode('$(a;b)', [
                               listnode('a;b',
                                   commandnode('a', wordnode('a'),),
                                   operatornode(';', ';'),
                                   commandnode('b', wordnode('b'),),
-                                )),
+                                ),
+                            ])
                           ]),
                         )
                         )
@@ -1089,11 +1107,11 @@ class test_parser(unittest.TestCase):
             commandnode(s,
               wordnode('a'),
               wordnode('$(b)c $1', '"$(b)"c" $1"', [
-                comsubnode('$(b)',
+                comsubnode('$(b)', [
                   commandnode('b',
                     wordnode('b'),
                   )
-                ),
+                ]),
                 parameternode('1', '$1'),
               ])
             ),

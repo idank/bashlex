@@ -593,6 +593,10 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     ef.visit(parts[-1])
     index = max(parts[-1].pos[1], ef.end) + 1
     while index < len(s):
+        if s[index].isspace():
+            index += 1
+            continue
+
         part = _parser(s[index:], strictmode=strictmode).parse()
 
         if not isinstance(part, ast.node):
