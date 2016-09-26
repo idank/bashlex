@@ -1,4 +1,3 @@
-import flags
-import utils
+from . import flags, utils
 
 parserstate = lambda: utils.typedset(flags.parser)
