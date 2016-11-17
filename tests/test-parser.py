@@ -1098,3 +1098,6 @@ class test_parser(unittest.TestCase):
               ])
             ),
         )
+
+if __name__ == '__main__':
+    unittest.main()
