@@ -46,7 +46,7 @@ It is also possible to only use the tokenizer and get similar behaviour to
 shlex.split, but bashlex understands more complex constructs such as command
 and process substitutions:
 
-    >>> bashlex.split('cat <(echo "a $(echo b)") | tee'')
+    >>> bashlex.split('cat <(echo "a $(echo b)") | tee')
     ['cat', '<(echo "a $(echo b)")', '|', 'tee']
 
 ..compared to shlex:
