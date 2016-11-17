@@ -92,6 +92,12 @@ I wrote this library for another project of mine, [explainshell](http://www.expl
 which needed a new parsing backend to support complex constructs such as
 process/command substitutions.
 
+## Releasing a new version
+
+- bump version in setup.py
+- git tag the new commit
+- run `python setup.py bdist_egg sdist upload`
+
 ## License
 
 The license for this is the same as that used by GNU bash, GNU GPL v3+.
