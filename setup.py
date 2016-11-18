@@ -1,4 +1,7 @@
-from setuptools import setup
+try:
+    from setuptools import setup #Py2
+except ImportError:
+    from distutils.core import setup #Py3
 
 setup(
     name='bashlex',

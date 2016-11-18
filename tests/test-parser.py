@@ -945,7 +945,7 @@ class test_parser(unittest.TestCase):
             parser._parser = old
 
         s = 'a $(b $(c))'
-        for i in [None] + range(2, 5):
+        for i in [None] + list(range(2, 5)):
             self.assertASTEquals(s,
                 commandnode(s,
                   wordnode('a'),
