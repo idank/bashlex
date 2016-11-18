@@ -24,6 +24,9 @@ class test_tokenizer(unittest.TestCase):
         for t in tokens:
             self.assertEquals(str(t.value), s[t.lexpos:t.endlexpos])
 
+    def test_empty_string(self):
+        self.assertEquals(len(tokenize('')), 0)
+
     def test_simple(self):
         s = 'a b'
         self.assertTokens(s, [
