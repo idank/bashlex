@@ -94,6 +94,7 @@ process/command substitutions.
 
 ## Releasing a new version
 
+- make tests
 - bump version in setup.py
 - git tag the new commit
 - run `python setup.py bdist_egg sdist upload`

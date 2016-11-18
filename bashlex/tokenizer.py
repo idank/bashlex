@@ -1153,27 +1153,3 @@ class tokenizer(object):
 
         if self._parserstate & parserflags.CONDEXPR and tokstr == ']]':
             return tokentype.COND_END
-
-def split(s):
-    '''a utility function that mimics shlex.split but handles more
-    complex shell constructs such as command substitutions inside words
-
-    >>> list(split('a b"c"\\'d\\''))
-    ['a', 'bcd']
-    >>> list(split('a "b $(c)" $(d) \\'$(e)\\''))
-    ['a', 'b $(c)', '$(d)', '$(e)']
-    >>> list(split('a b\\n'))
-    ['a', 'b', '\\n']
-    '''
-    from bashlex import subst
-
-    tok = tokenizer(s, state.parserstate())
-    for t in tok:
-        if t.ttype == tokentype.WORD:
-            quoted = bool(t.flags & flags.word.QUOTED)
-            doublequoted = quoted and t.value[0] == '"'
-            parts, expandedword = subst._expandwordinternal(tok, t, 0,
-                                                            doublequoted, 0, 0)
-            yield expandedword
-        else:
-            yield s[t.lexpos:t.endlexpos]

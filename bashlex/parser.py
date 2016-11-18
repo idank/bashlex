@@ -610,6 +610,28 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
 
     return parts
 
+def split(s):
+    '''a utility function that mimics shlex.split but handles more
+    complex shell constructs such as command substitutions inside words
+
+    >>> list(split('a b"c"\\'d\\''))
+    ['a', 'bcd']
+    >>> list(split('a "b $(c)" $(d) \\'$(e)\\''))
+    ['a', 'b $(c)', '$(d)', '$(e)']
+    >>> list(split('a b\\n'))
+    ['a', 'b', '\\n']
+    '''
+    p = _parser(s)
+    for t in p.tok:
+        if t.ttype == tokenizer.tokentype.WORD:
+            quoted = bool(t.flags & flags.word.QUOTED)
+            doublequoted = quoted and t.value[0] == '"'
+            parts, expandedword = subst._expandwordinternal(p, t, 0,
+                                                            doublequoted, 0, 0)
+            yield expandedword
+        else:
+            yield s[t.lexpos:t.endlexpos]
+
 class _parser(object):
     '''
     this class is mainly used to provide context to the productions
