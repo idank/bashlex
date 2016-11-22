@@ -542,14 +542,42 @@ yaccparser = yacc.yacc(tabmodule='bashlex.parsetab',
               outputdir=os.path.dirname(__file__),
               debug=False)
 
+'''
+#Py2
 # some hack to fix yacc's reduction on command substitutions
 yaccparser.action[45]['RIGHT_PAREN'] = -155
 yaccparser.action[11]['RIGHT_PAREN'] = -148
 yaccparser.action[133]['RIGHT_PAREN'] = -154
-
 for tt in tokenizer.tokentype:
     yaccparser.action[62][tt.name] = -1
     yaccparser.action[63][tt.name] = -141
+'''
+
+# which state to fix is derived from static transition tables
+# as states are changeable among python versions and architectures
+# the only state that is considered fixed is the initial state: 0
+def get_correction_states():
+    reduce = yaccparser.goto[0]['simple_list'] #~10
+    state2 = yaccparser.action[reduce]['NEWLINE'] #63
+    state1 = yaccparser.goto[reduce]['simple_list_terminator'] #~10
+    return state1, state2
+
+def get_correction_rightparen_states():
+    state1 = yaccparser.goto[0]['pipeline_command']
+    state2 = yaccparser.goto[0]['simple_list1'] #11
+    state_temp = yaccparser.action[state2]['SEMICOLON'] #65
+    state3 = yaccparser.goto[state_temp]['simple_list1']
+    return state1, state2, state3
+
+for tt in tokenizer.tokentype:
+    states = get_correction_states()
+    yaccparser.action[states[0]][tt.name] = -1
+    yaccparser.action[states[1]][tt.name] = -141
+
+states = get_correction_rightparen_states()
+yaccparser.action[states[0]]['RIGHT_PAREN'] = -155
+yaccparser.action[states[1]]['RIGHT_PAREN'] = -148
+yaccparser.action[states[2]]['RIGHT_PAREN'] = -154
 
 def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False):
     '''like parse, but only consumes a single top level node, e.g. parsing
