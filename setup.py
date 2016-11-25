@@ -5,7 +5,7 @@ except ImportError:
 
 setup(
     name='bashlex',
-    version='0.10',
+    version='0.12',
     url='https://github.com/idank/bashlex.git',
     license='GPLv3+',
     author='Idan Kamara',
