@@ -47,7 +47,8 @@ class tokentype(enum.Enum):
     COPROC = 15
     COND_START = 16
     COND_END = 17
-    COND_ERROR = 18
+    # https://github.com/idank/bashlex/issues/20
+    # COND_ERROR = 18
     IN = 19
     BANG = '!'
     TIME = 21
