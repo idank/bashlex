@@ -33,4 +33,5 @@ See https://github.com/idank/bashlex/blob/master/README.md for more info.''',
     ],
     install_requires=['enum34'],
     packages=['bashlex'],
+    data_files = [('', ['LICENSE'])]
 )
