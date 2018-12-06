@@ -31,7 +31,9 @@ See https://github.com/idank/bashlex/blob/master/README.md for more info.''',
         'Topic :: System :: System Shells',
         'Topic :: Text Processing',
     ],
-    install_requires=['enum34'],
+    install_requires=[
+        'enum34;python_version<"3.4"'
+    ],
     packages=['bashlex'],
     data_files = [('', ['LICENSE'])]
 )
