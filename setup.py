@@ -1,7 +1,13 @@
 try:
-    from setuptools import setup #Py2
+    from setuptools import setup  #Py2
 except ImportError:
-    from distutils.core import setup #Py3
+    from distutils.core import setup  #Py3
+
+import sys
+
+install_requires = []
+if sys.version_info < (3, 4):
+    install_requires.append('enum34')
 
 setup(
     name='bashlex',
@@ -31,9 +37,7 @@ See https://github.com/idank/bashlex/blob/master/README.md for more info.''',
         'Topic :: System :: System Shells',
         'Topic :: Text Processing',
     ],
-    install_requires=[
-        'enum34;python_version<"3.4"'
-    ],
+    install_requires=install_requires,
     packages=['bashlex'],
     data_files = [('', ['LICENSE'])]
 )
