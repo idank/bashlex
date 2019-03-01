@@ -98,7 +98,8 @@ process/command substitutions.
 - make tests
 - bump version in setup.py
 - git tag the new commit
-- run `python setup.py bdist_egg sdist upload`
+- run`python setup.py bdist_egg sdist
+- run twine upload dist/*
 
 ## License
 
