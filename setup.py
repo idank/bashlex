@@ -11,7 +11,7 @@ if sys.version_info < (3, 4):
 
 setup(
     name='bashlex',
-    version='0.13',
+    version='0.14',
     url='https://github.com/idank/bashlex.git',
     license='GPLv3+',
     author='Idan Kamara',
@@ -39,5 +39,4 @@ See https://github.com/idank/bashlex/blob/master/README.md for more info.''',
     ],
     install_requires=install_requires,
     packages=['bashlex'],
-    data_files = [('', ['LICENSE'])]
 )
