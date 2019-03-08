@@ -39,5 +39,4 @@ See https://github.com/idank/bashlex/blob/master/README.md for more info.''',
     ],
     install_requires=install_requires,
     packages=['bashlex'],
-    data_files = [('', ['LICENSE'])]
 )
