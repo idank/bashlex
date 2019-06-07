@@ -55,12 +55,13 @@ class tokentype(enum.Enum):
     TIMEOPT = 22
     TIMEIGN = 23
     WORD = 24
-    ASSIGNMENT_WORD = 25
-    REDIR_WORD = 26
-    NUMBER = 27
-    ARITH_CMD = 28
-    ARITH_FOR_EXPRS = 29
-    COND_CMD = 30
+    LET = 25
+    ASSIGNMENT_WORD = 26
+    REDIR_WORD = 27
+    NUMBER = 28
+    ARITH_CMD = 29
+    ARITH_FOR_EXPRS = 30
+    COND_CMD = 31
     AND_AND = '&&'
     OR_OR = '||'
     GREATER_GREATER = '>>'
@@ -96,7 +97,7 @@ _reserved = set([
     tokentype.FI, tokentype.IF, tokentype.OR_OR, tokentype.SEMI_SEMI,
     tokentype.SEMI_AND, tokentype.SEMI_SEMI_AND, tokentype.THEN,
     tokentype.TIME, tokentype.TIMEOPT, tokentype.TIMEIGN, tokentype.COPROC,
-    tokentype.UNTIL, tokentype.WHILE])
+    tokentype.UNTIL, tokentype.WHILE, tokentype.LET])
 
 for c in '\n;()|&{}':
     _reserved.add(c)
@@ -124,7 +125,8 @@ valid_reserved_first_command = {
     "!" : tokentype.BANG,
     "[[" : tokentype.COND_START,
     "]]" : tokentype.COND_END,
-    "coproc" : tokentype.COPROC
+    "coproc" : tokentype.COPROC,
+    "let" : tokentype.LET
 }
 
 class MatchedPairError(errors.ParsingError):

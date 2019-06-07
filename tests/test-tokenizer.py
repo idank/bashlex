@@ -274,6 +274,18 @@ class test_tokenizer(unittest.TestCase):
         #                  t(tt.WORD, '"\\a"', flags=set([flags.word.QUOTED]))])
 
     def test_assignment(self):
+        s = 'let a=b'
+        self.assertTokens(s, [
+                          t(tt.LET, 'let', [0, 3]),
+                          t(tt.ASSIGNMENT_WORD, 'a=b', [4, 7],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
+        s = 'let a+=b'
+        self.assertTokens(s, [
+                          t(tt.LET, 'let', [0, 3]),
+                          t(tt.ASSIGNMENT_WORD, 'a+=b', [4, 8],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
         s = 'a=b'
         self.assertTokens(s, [
                           t(tt.ASSIGNMENT_WORD, 'a=b', [0, 3],
