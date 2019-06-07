@@ -294,6 +294,11 @@ class tokenizer(object):
         character = self._getc(True)
         while character is not None and _shellblank(character):
             character = self._getc(True)
+            if character == '\\':
+                peek_char = self._getc(False)
+                if peek_char != '\n':
+                    self._ungetc(peek_char)
+                peek_char = None
 
         if character is None:
             return eoftoken
@@ -302,6 +307,7 @@ class tokenizer(object):
             self._discard_until('\n')
             self._getc(False)
             character = '\n'
+
 
         self._recordpos(1)
 
@@ -877,7 +883,7 @@ class tokenizer(object):
                 assert False # pragma: no cover
 
         while count:
-            c = self._getc(doublequotes != "'" and not passnextchar)
+            c = self._getc(doublequotes != '"' and doublequotes != "'" and not passnextchar)
             if c is None:
                 raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 
@@ -1040,7 +1046,9 @@ class tokenizer(object):
             else:
                 c = None
 
-            if c == '\\' and remove_quoted_newline and self._shell_input_line[self._shell_input_line_index] == '\n':
+            if c == '\\' and remove_quoted_newline and self._shell_input_line_index < len(self._shell_input_line) \
+               and self._shell_input_line[self._shell_input_line_index] == '\n':
+                self._shell_input_line_index += 1
                 self._line_number += 1
                 continue
             else:

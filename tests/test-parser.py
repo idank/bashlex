@@ -126,6 +126,13 @@ class test_parser(unittest.TestCase):
                   wordnode('b'),
                   wordnode('c', '"c"')))
 
+        s = 'a \\\nb \\\n"c"'
+        self.assertASTEquals(s,
+                commandnode(s,
+                  wordnode('a'),
+                  wordnode('b'),
+                  wordnode('c', '"c"')))
+
         s = '2>/dev/null a b "c"'
         self.assertASTEquals(s,
                 commandnode(s,
@@ -847,6 +854,14 @@ class test_parser(unittest.TestCase):
 
     def test_assignments(self):
         # assignments must appear before the first word
+#         s = 'let a=b'
+#         self.assertASTEquals(s,
+#                              commandnode(s,
+#                                reservedwordnode('let', 'let'),
+#                                assignmentnode(s='a=b', word='a=b'),
+#                              )
+#                             )
+
         s = 'a=b c e=d'
         self.assertASTEquals(s,
                              commandnode(s,
