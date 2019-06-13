@@ -970,7 +970,7 @@ class tokenizer(object):
         c = value[0]
 
         def legalvariablechar(x):
-            return x.isalpha() or x == '_'
+            return x.isalnum() or x == '_'
 
         if not legalvariablechar(c):
             return
