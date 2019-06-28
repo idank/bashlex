@@ -331,3 +331,14 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.WORD, 'a', [0, 1]),
                           t(tt.WORD, "'b  '", [2, 7], set([flags.word.QUOTED])),
                           t(tt.WORD, 'c', [8, 9])])
+
+    def test_variables(self):
+        s = 'a0_=b'
+        self.assertTokens(s, [
+                          t(tt.ASSIGNMENT_WORD, 'a0_=b', [0, 5],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
+        s = 'a0_+=b'
+        self.assertTokens(s, [
+                          t(tt.ASSIGNMENT_WORD, 'a0_+=b', [0, 6],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
