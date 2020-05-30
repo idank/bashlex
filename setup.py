@@ -11,7 +11,7 @@ if sys.version_info < (3, 4):
 
 setup(
     name='bashlex',
-    version='0.14',
+    version='0.15',
     url='https://github.com/idank/bashlex.git',
     license='GPLv3+',
     author='Idan Kamara',
