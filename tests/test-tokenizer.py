@@ -70,9 +70,18 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.BAR, '|', [0, 1])])
 
     def test_shellquote(self):
+        s = '"foo\'"'
+        self.assertTokens(s, [
+                          t(tt.WORD, '"foo\'"', [0, 6], set([flags.word.QUOTED]))])
+
         s = '"foo"'
         self.assertTokens(s, [
                           t(tt.WORD, '"foo"', [0, 5], set([flags.word.QUOTED]))])
+
+
+        s = '"foo\n"'
+        self.assertTokens(s, [
+                          t(tt.WORD, '"foo\n"', [0, 6], set([flags.word.QUOTED]))])
 
         s = '"foo"bar\'baz\''
         self.assertTokens(s, [
@@ -81,6 +90,28 @@ class test_tokenizer(unittest.TestCase):
         self.assertRaises(tokenizer.MatchedPairError,
                           tokenize,
                           "'a")
+
+        s = '"foo\\ \n"'
+        self.assertTokens(s, [
+                          t(tt.WORD, '"foo\\ \n"', [0, 8], set([flags.word.QUOTED]))])
+
+        s = '"foo\\\n"'
+        self.assertTokens(s, [
+                          t(tt.WORD, '"foo\\\n"', [0, 7], set([flags.word.QUOTED]))])
+
+
+        s = '"foo\\\'"'
+        self.assertTokens(s, [
+                          t(tt.WORD, '"foo\\\'"', [0, 7], set([flags.word.QUOTED]))])
+
+        s = "'foo\"'"
+        self.assertTokens(s, [
+                          t(tt.WORD, "'foo\"'", [0, 6], set([flags.word.QUOTED]))])
+
+        s = '"foo\'"'
+        self.assertTokens(s, [
+                          t(tt.WORD, '"foo\'"', [0, 6], set([flags.word.QUOTED]))])
+
 
     def test_shellexp(self):
         s = '<(foo) bar $(baz) ${a}'
@@ -243,6 +274,18 @@ class test_tokenizer(unittest.TestCase):
         #                  t(tt.WORD, '"\\a"', flags=set([flags.word.QUOTED]))])
 
     def test_assignment(self):
+        s = 'let a=b'
+        self.assertTokens(s, [
+                          t(tt.LET, 'let', [0, 3]),
+                          t(tt.ASSIGNMENT_WORD, 'a=b', [4, 7],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
+        s = 'let a+=b'
+        self.assertTokens(s, [
+                          t(tt.LET, 'let', [0, 3]),
+                          t(tt.ASSIGNMENT_WORD, 'a+=b', [4, 8],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
         s = 'a=b'
         self.assertTokens(s, [
                           t(tt.ASSIGNMENT_WORD, 'a=b', [0, 3],
@@ -307,6 +350,17 @@ class test_tokenizer(unittest.TestCase):
         s = "a b\\"
 
         self.assertRaisesRegexp(errors.ParsingError, "No escaped character.*position 2", tokenize, s)
+
+    def test_line_continuation(self):
+        s = 'a  \\\nb'
+        self.assertTokens(s, [
+                          t(tt.WORD, 'a', [0, 1]),
+                          t(tt.WORD, 'b', [5, 6])])
+
+        s = '\\\na  \\\nb'
+        self.assertTokens(s, [
+                          t(tt.WORD, 'a', [2, 3]),
+                          t(tt.WORD, 'b', [7, 8])])
 
     def test_tokenize(self):
         s = 'bar -x'

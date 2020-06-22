@@ -55,12 +55,13 @@ class tokentype(enum.Enum):
     TIMEOPT = 22
     TIMEIGN = 23
     WORD = 24
-    ASSIGNMENT_WORD = 25
-    REDIR_WORD = 26
-    NUMBER = 27
-    ARITH_CMD = 28
-    ARITH_FOR_EXPRS = 29
-    COND_CMD = 30
+    LET = 25
+    ASSIGNMENT_WORD = 26
+    REDIR_WORD = 27
+    NUMBER = 28
+    ARITH_CMD = 29
+    ARITH_FOR_EXPRS = 30
+    COND_CMD = 31
     AND_AND = '&&'
     OR_OR = '||'
     GREATER_GREATER = '>>'
@@ -96,7 +97,7 @@ _reserved = set([
     tokentype.FI, tokentype.IF, tokentype.OR_OR, tokentype.SEMI_SEMI,
     tokentype.SEMI_AND, tokentype.SEMI_SEMI_AND, tokentype.THEN,
     tokentype.TIME, tokentype.TIMEOPT, tokentype.TIMEIGN, tokentype.COPROC,
-    tokentype.UNTIL, tokentype.WHILE])
+    tokentype.UNTIL, tokentype.WHILE, tokentype.LET])
 
 for c in '\n;()|&{}':
     _reserved.add(c)
@@ -124,7 +125,8 @@ valid_reserved_first_command = {
     "!" : tokentype.BANG,
     "[[" : tokentype.COND_START,
     "]]" : tokentype.COND_END,
-    "coproc" : tokentype.COPROC
+    "coproc" : tokentype.COPROC,
+    "let" : tokentype.LET
 }
 
 class MatchedPairError(errors.ParsingError):
@@ -294,6 +296,11 @@ class tokenizer(object):
         character = self._getc(True)
         while character is not None and _shellblank(character):
             character = self._getc(True)
+            if character == '\\':
+                peek_char = self._getc(False)
+                if peek_char != '\n':
+                    self._ungetc(peek_char)
+                peek_char = None
 
         if character is None:
             return eoftoken
@@ -302,6 +309,7 @@ class tokenizer(object):
             self._discard_until('\n')
             self._getc(False)
             character = '\n'
+
 
         self._recordpos(1)
 
@@ -877,7 +885,7 @@ class tokenizer(object):
                 assert False # pragma: no cover
 
         while count:
-            c = self._getc(doublequotes != "'" and not passnextchar)
+            c = self._getc(doublequotes != '"' and doublequotes != "'" and not passnextchar)
             if c is None:
                 raise MatchedPairError(startlineno, 'unexpected EOF while looking for matching %r' % close, self)
 
@@ -1040,7 +1048,9 @@ class tokenizer(object):
             else:
                 c = None
 
-            if c == '\\' and remove_quoted_newline and self._shell_input_line[self._shell_input_line_index] == '\n':
+            if c == '\\' and remove_quoted_newline and self._shell_input_line_index < len(self._shell_input_line) \
+               and self._shell_input_line[self._shell_input_line_index] == '\n':
+                self._shell_input_line_index += 1
                 self._line_number += 1
                 continue
             else:
