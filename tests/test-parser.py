@@ -111,6 +111,11 @@ class test_parser(unittest.TestCase):
             msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
             self.assertEquals(result, expected, msg)
 
+    def test_comment(self):
+        s = '# comment'
+        results = parse(s)
+        self.assertEquals(results, [], 'expected empty tree for comment')
+
     def test_command(self):
         s = 'a b c'
         self.assertASTEquals(s,

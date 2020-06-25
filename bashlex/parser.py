@@ -598,7 +598,10 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     command substitutions found during word expansion.
     '''
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
-    parts = [p.parse()]
+    tree = p.parse()
+    if not tree:
+        return []
+    parts = [tree]
 
     class endfinder(ast.nodevisitor):
         def __init__(self):
