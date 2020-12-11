@@ -969,11 +969,14 @@ class tokenizer(object):
     def _is_assignment(self, value, iscompassign):
         c = value[0]
 
-        def legalvariablechar(x):
+        def legalvariablestarter(x):
             return x.isalpha() or x == '_'
 
-        if not legalvariablechar(c):
-            return
+        def legalvariablechar(x):
+            return x.isalnum() or x == '_'
+
+        if not legalvariablestarter(c):
+            return False
 
         for i, c in enumerate(value):
             if c == '=':
