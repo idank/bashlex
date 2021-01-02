@@ -95,10 +95,18 @@ process/command substitutions.
 
 ## Releasing a new version
 
-- make tests
-- bump version in setup.py
+Suggestion for making a release environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+- `make tests`
+- bump version in `setup.py`
 - git tag the new commit
-- run`python setup.py bdist_egg sdist
+- run `python -m build`
 - run twine upload dist/*
 
 ## License
