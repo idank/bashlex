@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 
 import argparse
@@ -72,4 +74,4 @@ if __name__ == '__main__':
         # with the replacement string
         postprocessed[start:end] = args.replacement
 
-    print ''.join(postprocessed)
+    print(''.join(postprocessed))

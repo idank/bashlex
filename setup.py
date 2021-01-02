@@ -1,13 +1,5 @@
-try:
-    from setuptools import setup  #Py2
-except ImportError:
-    from distutils.core import setup  #Py3
+from setuptools import setup
 
-import sys
-
-install_requires = []
-if sys.version_info < (3, 4):
-    install_requires.append('enum34')
 
 setup(
     name='bashlex',
@@ -37,6 +29,7 @@ See https://github.com/idank/bashlex/blob/master/README.md for more info.''',
         'Topic :: System :: System Shells',
         'Topic :: Text Processing',
     ],
-    install_requires=install_requires,
+    python_requires=">=2.7, !=3.0, !=3.1, !=3.2, !=3.3, !=3.4",
+    install_requires=['enum34; python_version < "3.4"'],
     packages=['bashlex'],
 )
