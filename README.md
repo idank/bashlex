@@ -1,5 +1,6 @@
 # bashlex - Python parser for bash
-[![Build Status](https://travis-ci.org/idank/bashlex.svg?branch=master)](https://travis-ci.org/idank/bashlex)
+
+[![GitHub Actions status](https://github.com/idank/bashlex/workflows/Test/badge.svg)](https://github.com/idank/bashlex/actions)
 
 bashlex is a Python port of the parser used internally by GNU bash.
 
