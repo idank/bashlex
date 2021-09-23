@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='bashlex',
-    version='0.15',
+    version='0.16',
     url='https://github.com/idank/bashlex.git',
     license='GPLv3+',
     author='Idan Kamara',
