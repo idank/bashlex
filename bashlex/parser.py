@@ -12,6 +12,12 @@ precedence = (
     ('right', 'BAR', 'BAR_AND')
 )
 
+def handleNotImplemented(p, type):
+    if len(p) == 2:
+        raise NotImplementedError(f'type = {type}. token = {p[1]}')
+    else:
+        raise NotImplementedError(f'type = {type}. token = {p[1]}. parts = {p[2]}')
+
 def p_inputunit(p):
     '''inputunit : simple_list simple_list_terminator
                  | NEWLINE
@@ -268,7 +274,7 @@ def p_arith_for_command(p):
                          | FOR ARITH_FOR_EXPRS list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY
                          | FOR ARITH_FOR_EXPRS DO compound_list DONE
                          | FOR ARITH_FOR_EXPRS LEFT_CURLY compound_list RIGHT_CURLY'''
-    raise NotImplementedError('arithmetic for')
+    handleNotImplemented(p, 'arithmetic for')
 
 def p_select_command(p):
     '''select_command : SELECT WORD newline_list DO list DONE
@@ -277,13 +283,13 @@ def p_select_command(p):
                       | SELECT WORD SEMICOLON newline_list LEFT_CURLY list RIGHT_CURLY
                       | SELECT WORD newline_list IN word_list list_terminator newline_list DO list DONE
                       | SELECT WORD newline_list IN word_list list_terminator newline_list LEFT_CURLY list RIGHT_CURLY'''
-    raise NotImplementedError('select command')
+    handleNotImplemented(p, 'select command')
 
 def p_case_command(p):
     '''case_command : CASE WORD newline_list IN newline_list ESAC
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
-    raise NotImplementedError ('case command')
+    handleNotImplemented(p, 'case command')
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -321,7 +327,7 @@ def p_coproc(p):
               | COPROC WORD shell_command
               | COPROC WORD shell_command redirection_list
               | COPROC simple_command'''
-    raise NotImplementedError('coproc')
+    handleNotImplemented(p, 'coproc')
 
 def p_if_command(p):
     '''if_command : IF compound_list THEN compound_list FI
@@ -346,11 +352,11 @@ def p_group_command(p):
 
 def p_arith_command(p):
     '''arith_command : ARITH_CMD'''
-    raise NotImplementedError('arithmetic command')
+    handleNotImplemented(p, 'arithmetic command')
 
 def p_cond_command(p):
     '''cond_command : COND_START COND_CMD COND_END'''
-    raise NotImplementedError('cond command')
+    handleNotImplemented(p, 'cond command')
 
 def p_elif_clause(p):
     '''elif_clause : ELIF compound_list THEN compound_list
@@ -367,14 +373,14 @@ def p_elif_clause(p):
 def p_case_clause(p):
     '''case_clause : pattern_list
                    | case_clause_sequence pattern_list'''
-    raise NotImplementedError('case clause')
+    handleNotImplemented(p, 'case clause')
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
                     | newline_list pattern RIGHT_PAREN newline_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN compound_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN newline_list'''
-    raise NotImplementedError('pattern list')
+    handleNotImplemented(p, 'pattern list')
 
 def p_case_clause_sequence(p):
     '''case_clause_sequence : pattern_list SEMI_SEMI
@@ -383,12 +389,12 @@ def p_case_clause_sequence(p):
                             | case_clause_sequence pattern_list SEMI_AND
                             | pattern_list SEMI_SEMI_AND
                             | case_clause_sequence pattern_list SEMI_SEMI_AND'''
-    raise NotImplementedError('case clause')
+    handleNotImplemented(p, 'case clause')
 
 def p_pattern(p):
     '''pattern : WORD
                | pattern BAR WORD'''
-    raise NotImplementedError('pattern')
+    handleNotImplemented(p, 'pattern')
 
 def p_list(p):
     '''list : newline_list list0'''
@@ -521,7 +527,7 @@ def p_timespec(p):
     '''timespec : TIME
                 | TIME TIMEOPT
                 | TIME TIMEOPT TIMEIGN'''
-    raise NotImplementedError('time command')
+    handleNotImplemented(p, 'time command')
 
 def p_empty(p):
     '''empty :'''
