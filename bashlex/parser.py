@@ -18,6 +18,10 @@ def handleNotImplemented(p, type):
     else:
         raise NotImplementedError(f'type = {type}. token = {p[1]}. parts = {p[2]}')
 
+def handleAssert(p, test):
+    if not test:
+        raise AssertionError(f'token = {p[1]}')
+
 def p_inputunit(p):
     '''inputunit : simple_list simple_list_terminator
                  | NEWLINE
@@ -192,9 +196,9 @@ def p_command(p):
     if isinstance(p[1], ast.node):
         p[0] = p[1]
         if len(p) == 3:
-            assert p[0].kind == 'compound'
+            handleAssert(p, p[0].kind == 'compound')
             p[0].redirects.extend(p[2])
-            assert p[0].pos[0] < p[0].redirects[-1].pos[1]
+            handleAssert(p, p[0].pos[0] < p[0].redirects[-1].pos[1])
             p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
     else:
         p[0] = ast.node(kind='command', parts=p[1], pos=_partsspan(p[1]))
@@ -215,7 +219,7 @@ def p_shell_command(p):
         p[0] = p[1]
     else:
         # while or until
-        assert p[2].kind == 'list'
+        handleAssert(p, p[2].kind == 'list')
 
         parts = _makeparts(p)
         kind = parts[0].word
@@ -225,7 +229,7 @@ def p_shell_command(p):
                         list=[ast.node(kind=kind, parts=parts, pos=_partsspan(parts))],
                         pos=_partsspan(parts))
 
-    assert p[0].kind == 'compound'
+    handleAssert(p, p[0].kind == 'compound')
 
 def _makeparts(p):
     parts = []
@@ -305,12 +309,12 @@ def p_function_def(p):
 def p_function_body(p):
     '''function_body : shell_command
                      | shell_command redirection_list'''
-    assert p[1].kind == 'compound'
+    handleAssert(p, p[1].kind == 'compound')
 
     p[0] = p[1]
     if len(p) == 3:
         p[0].redirects.extend(p[2])
-        assert p[0].pos[0] < p[0].redirects[-1].pos[1]
+        handleAssert(p, p[0].pos[0] < p[0].redirects[-1].pos[1])
         p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
 
 def p_subshell(p):
