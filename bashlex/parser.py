@@ -16,7 +16,7 @@ def handleNotImplemented(p, type):
     if len(p) == 2:
         raise NotImplementedError('type = %s, token = {%s}' % (type, p[1]))
     else:
-        raise NotImplementedError(f'type = {type}, token = {%s}, parts = {%s}' % (type, p[1], p[2]))
+        raise NotImplementedError('type = {type}, token = {%s}, parts = {%s}' % (type, p[1], p[2]))
 
 def handleAssert(p, test):
     if not test:
