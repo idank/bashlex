@@ -10,6 +10,11 @@ tokenize = lambda s: list(tokenizer.tokenizer(s, state.parserstate()))
 hasdollarset = set([flags.word.HASDOLLAR])
 
 class test_tokenizer(unittest.TestCase):
+
+    def setUp(self):
+        if not hasattr(self, 'assertRaisesRegex'):
+            self.assertRaisesRegex = self.assertRaisesRegexp
+
     def assertTokens(self, s, tokens):
         result = tokenize(s)
 
@@ -19,13 +24,13 @@ class test_tokenizer(unittest.TestCase):
         if result[-1].value == '\n':
             result.pop()
 
-        self.assertEquals(result, tokens)
+        self.assertEqual(result, tokens)
 
         for t in tokens:
-            self.assertEquals(str(t.value), s[t.lexpos:t.endlexpos])
+            self.assertEqual(str(t.value), s[t.lexpos:t.endlexpos])
 
     def test_empty_string(self):
-        self.assertEquals(len(tokenize('')), 0)
+        self.assertEqual(len(tokenize('')), 0)
 
     def test_simple(self):
         s = 'a b'
@@ -103,7 +108,7 @@ class test_tokenizer(unittest.TestCase):
     def test_parameter_expansion(self):
         # s = 'a $"foo"'
         # tok = tokenizer.tokenizer(s, state.parserstate())
-        # self.assertEquals(list(tok), [t(tt.WORD, 'a'),
+        # self.assertEqual(list(tok), [t(tt.WORD, 'a'),
         #                               t(tt.WORD, '"foo"', flags=set([flags.word.QUOTED]))])
 
         s = 'a $$'
@@ -239,7 +244,7 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.WORD, "'a\\'", [0, len(s)], set([flags.word.QUOTED]))])
 
         #s = '"\\\n"'
-        #self.assertEquals(tokenize(s), [
+        #self.assertEqual(tokenize(s), [
         #                  t(tt.WORD, '"\\a"', flags=set([flags.word.QUOTED]))])
 
     def test_assignment(self):
@@ -299,14 +304,14 @@ class test_tokenizer(unittest.TestCase):
     def test_quote_error(self):
         s = "a 'b"
         msg = "EOF.*matching \"'\" \\(position 4"
-        self.assertRaisesRegexp(errors.ParsingError, msg, tokenize, s)
+        self.assertRaisesRegex(errors.ParsingError, msg, tokenize, s)
 
     def test_escape_error(self):
         return # TODO
 
         s = "a b\\"
 
-        self.assertRaisesRegexp(errors.ParsingError, "No escaped character.*position 2", tokenize, s)
+        self.assertRaisesRegex(errors.ParsingError, "No escaped character.*position 2", tokenize, s)
 
     def test_tokenize(self):
         s = 'bar -x'
