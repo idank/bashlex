@@ -86,6 +86,11 @@ def functionnode(s, name, body, *parts):
     return ast.node(kind='function', name=name, body=body, parts=list(parts), s=s)
 
 class test_parser(unittest.TestCase):
+
+    def setUp(self):
+        if not hasattr(self, 'assertRaisesRegex'):
+            self.assertRaisesRegex = self.assertRaisesRegexp
+
     def assertASTEquals(self, s, expected, **parserargs):
         results = parse(s, **parserargs)
         self.assertTrue(len(results) == 1, 'expected one ast from parse(), '
@@ -100,16 +105,16 @@ class test_parser(unittest.TestCase):
         nullopvisitor().visit(result)
 
         msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
-        self.assertEquals(result, expected, msg)
+        self.assertEqual(result, expected, msg)
 
     def assertASTsEquals(self, s, expectedlist, **parserargs):
         results = parse(s, **parserargs)
-        self.assertEquals(len(results), len(expectedlist),
+        self.assertEqual(len(results), len(expectedlist),
                           'mismatch on ASTs length')
 
         for result, expected in zip(results, expectedlist):
             msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
-            self.assertEquals(result, expected, msg)
+            self.assertEqual(result, expected, msg)
 
     def test_command(self):
         s = 'a b c'
@@ -528,14 +533,14 @@ class test_parser(unittest.TestCase):
 
     def test_invalid_control(self):
         s = 'a &| b'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected token '|'.*position 3", parse, s)
+        self.assertRaisesRegex(errors.ParsingError, "unexpected token '|'.*position 3", parse, s)
 
     def test_invalid_redirect(self):
         s = 'a 2>'
-        self.assertRaisesRegexp(errors.ParsingError, r"unexpected token '\\n'.*position 4", parse, s)
+        self.assertRaisesRegex(errors.ParsingError, r"unexpected token '\\n'.*position 4", parse, s)
 
         s = 'ssh -p 2222 <user>@<host>'
-        self.assertRaisesRegexp(errors.ParsingError, r"unexpected token '\\n'.*position %d" % len(s), parse, s)
+        self.assertRaisesRegex(errors.ParsingError, r"unexpected token '\\n'.*position %d" % len(s), parse, s)
 
     def test_if_redirection(self):
         s = 'if foo; then bar; fi >/dev/null'
@@ -667,13 +672,13 @@ class test_parser(unittest.TestCase):
 
     def test_malformed_if(self):
         s = 'if foo; bar; fi'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected token 'fi'.*position 13", parse, s)
+        self.assertRaisesRegex(errors.ParsingError, "unexpected token 'fi'.*position 13", parse, s)
 
         s = 'if foo; then bar;'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected EOF.*position 17", parse, s)
+        self.assertRaisesRegex(errors.ParsingError, "unexpected EOF.*position 17", parse, s)
 
         s = 'if foo; then bar; elif baz; fi'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected token 'fi'.*position 28", parse, s)
+        self.assertRaisesRegex(errors.ParsingError, "unexpected token 'fi'.*position 28", parse, s)
 
     def test_word_expansion(self):
         s = "'a' ' b' \"'c'\""
@@ -746,7 +751,7 @@ class test_parser(unittest.TestCase):
                 strictmode=False)
 
         s = 'a <<<<b'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected token '<'.*5", parse, s)
+        self.assertRaisesRegex(errors.ParsingError, "unexpected token '<'.*5", parse, s)
 
     def test_heredoc_with_actual_doc(self):
         doc = 'foo\nbar\nEOF'
@@ -761,7 +766,7 @@ class test_parser(unittest.TestCase):
                 ))
 
         s = 'a <<EOF\nb'
-        self.assertRaisesRegexp(errors.ParsingError,
+        self.assertRaisesRegex(errors.ParsingError,
                                 "delimited by end-of-file \\(wanted 'EOF'",
                                 parse, s)
 
@@ -940,7 +945,7 @@ class test_parser(unittest.TestCase):
                 expansionlimit=1
             )
 
-            self.assertEquals(counter[0], 3)
+            self.assertEqual(counter[0], 3)
         finally:
             parser._parser = old
 
@@ -995,7 +1000,7 @@ class test_parser(unittest.TestCase):
         )
 
     def test_command_arithmetic(self):
-        self.assertRaisesRegexp(NotImplementedError, 'arithmetic expansion',
+        self.assertRaisesRegex(NotImplementedError, 'arithmetic expansion',
                                 parse, 'a "$((2 + 2))"')
 
     def test_function_no_function_keyword(self):
@@ -1061,7 +1066,7 @@ class test_parser(unittest.TestCase):
                             )
 
         s = 'a { b; }'
-        self.assertRaisesRegexp(errors.ParsingError, "unexpected token '}'.*7",
+        self.assertRaisesRegex(errors.ParsingError, "unexpected token '}'.*7",
                                 parse, s)
 
     def test_command_substitution_dollar_semicolon(self):
