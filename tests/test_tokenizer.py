@@ -258,6 +258,15 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.ASSIGNMENT_WORD, 'a+=b', [0, 4],
                             flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
 
+        s = 'a2=b'
+        self.assertTokens(s, [
+                          t(tt.ASSIGNMENT_WORD, 'a2=b', [0, 4],
+                            flags=set([flags.word.NOSPLIT, flags.word.ASSIGNMENT]))])
+
+        s = '2a=b'  # This should be a word, not an assignment. bash doesn't allow 1st char to be int
+        self.assertTokens(s, [
+                          t(tt.WORD, '2a=b', [0, 4])])
+
     def test_plus_at_end_of_word(self):
         s = 'a+ b'
         self.assertTokens(s, [
