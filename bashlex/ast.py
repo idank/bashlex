@@ -89,6 +89,10 @@ class nodevisitor(object):
             dochild = self._visitnode(n, n.command)
             if dochild is None or dochild:
                 self.visit(n.command)
+        elif k == 'arithmeticexpansion':
+            dochild = self._visitnode(n, n.arithmetic)
+            if dochild is None or dochild:
+                self.visit(n.arithmetic)
         else:
             raise ValueError('unknown node kind %r' % k)
         self.visitnodeend(n)
@@ -136,6 +140,8 @@ class nodevisitor(object):
     def visitprocesssubstitution(self, n, command):
         pass
     def visitcommandsubstitution(self, n, command):
+        pass
+    def visitarithmeticexpansion(self, n, value):
         pass
 
 def _dump(tree, indent='  '):

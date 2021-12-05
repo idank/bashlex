@@ -49,7 +49,10 @@ def _parsedolparen(parserobj, base, sindex):
 
 def _extractcommandsubst(parserobj, string, sindex, sxcommand=False):
     if string[sindex] == '(':
-        raise NotImplementedError('arithmetic expansion')
+        node, si = _parsedolparen(parserobj, string, sindex+1)
+        si += 2
+        return ast.node(kind='arithmeticexpansion', arithmetic=node, pos=(sindex-2, si)), si
+        #raise NotImplementedError('arithmetic expansion')
         #return _extractdelimitedstring(parserobj, string, sindex, '$(', '(', '(', sxcommand=True)
     else:
         node, si = _parsedolparen(parserobj, string, sindex)

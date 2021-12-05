@@ -73,6 +73,9 @@ def procsubnode(s, command):
 def comsubnode(s, command):
     return ast.node(kind='commandsubstitution', s=s, command=command)
 
+def comarithnode(value, s):
+  return ast.node(kind='arithmeticexpansion', arithmetic=value, s=s)
+
 def ifnode(s, *parts):
     return ast.node(kind='if', parts=list(parts), s=s)
 
@@ -1000,8 +1003,21 @@ class test_parser(unittest.TestCase):
         )
 
     def test_command_arithmetic(self):
-        self.assertRaisesRegex(NotImplementedError, 'arithmetic expansion',
-                                parse, 'a "$((2 + 2))"')
+      s= 'a $((2 + 2))'
+      self.assertASTEquals(s, 
+          commandnode(s, 
+            wordnode('a'),
+            wordnode('$((2 + 2))', '$((2 + 2))', [
+              comarithnode( 
+                commandnode('2 + 2', 
+                    wordnode('2'),
+                    wordnode('+'),
+                    wordnode('2')
+                ), '$((2 + 2))'
+              )
+            ])  
+          )
+      )
 
     def test_function_no_function_keyword(self):
         s = 'a() { b; }'
