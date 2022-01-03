@@ -371,10 +371,14 @@ class LRParser:
 
             if t is not None:
                 if t > 0:
-                    # shift a symbol on the stack
-                    statestack.append(t)
-                    state = t
-                    
+                    if t == 3 and state == 0:
+                        # If in init state and \n is encountered, then shift the \n off the stack and continue
+                        # The shift off the stack is accomplished by just never adding it in the first place
+                        state = 0
+                    else:
+                        # shift a symbol on the stack
+                        statestack.append(t)
+                        state = t
                     # --! DEBUG
                     debug.debug("Action : Shift and goto state %s", t)
                     # --! DEBUG
@@ -680,9 +684,14 @@ class LRParser:
 
             if t is not None:
                 if t > 0:
-                    # shift a symbol on the stack
-                    statestack.append(t)
-                    state = t
+                    if t == 3 and state == 0:
+                        # If in init state and \n is encountered, then shift the \n off the stack and continue
+                        # The shift off the stack is accomplished by just never adding it in the first place
+                        state = 0
+                    else:
+                        # shift a symbol on the stack
+                        statestack.append(t)
+                        state = t
 
                     symstack.append(lookahead)
                     lookahead = None
@@ -956,9 +965,14 @@ class LRParser:
 
             if t is not None:
                 if t > 0:
-                    # shift a symbol on the stack
-                    statestack.append(t)
-                    state = t
+                    if t == 3 and state == 0:
+                        # If in init state and \n is encountered, then shift the \n off the stack and continue
+                        # The shift off the stack is accomplished by just never adding it in the first place
+                        state = 0
+                    else:
+                        # shift a symbol on the stack
+                        statestack.append(t)
+                        state = t
 
                     symstack.append(lookahead)
                     lookahead = None
