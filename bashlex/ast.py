@@ -24,6 +24,9 @@ class node(object):
         if not isinstance(other, node):
             return False
         return self.__dict__ == other.__dict__
+    
+    def __hash__(self):
+        return hash(tuple(sorted(self.__dict__)))
 
 class nodevisitor(object):
     def _visitnode(self, n, *args, **kwargs):
