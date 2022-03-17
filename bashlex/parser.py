@@ -12,16 +12,6 @@ precedence = (
     ('right', 'BAR', 'BAR_AND')
 )
 
-def handleNotImplemented(p, type):
-    if len(p) == 2:
-        raise NotImplementedError('type = {%s}, token = {%s}' % (type, p[1]))
-    else:
-        raise NotImplementedError('type = {%s}, token = {%s}, parts = {%s}' % (type, p[1], p[2]))
-
-def handleAssert(p, test):
-    if not test:
-        raise AssertionError('token = {%s}' % p[1])
-
 def p_inputunit(p):
     '''inputunit : simple_list simple_list_terminator
                  | NEWLINE
@@ -196,9 +186,9 @@ def p_command(p):
     if isinstance(p[1], ast.node):
         p[0] = p[1]
         if len(p) == 3:
-            handleAssert(p, p[0].kind == 'compound')
+            assert p[0].kind == 'compound'
             p[0].redirects.extend(p[2])
-            handleAssert(p, p[0].pos[0] < p[0].redirects[-1].pos[1])
+            assert p[0].pos[0] < p[0].redirects[-1].pos[1]
             p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
     else:
         p[0] = ast.node(kind='command', parts=p[1], pos=_partsspan(p[1]))
@@ -219,7 +209,7 @@ def p_shell_command(p):
         p[0] = p[1]
     else:
         # while or until
-        handleAssert(p, p[2].kind == 'list')
+        assert p[2].kind == 'list'
 
         parts = _makeparts(p)
         kind = parts[0].word
@@ -229,7 +219,7 @@ def p_shell_command(p):
                         list=[ast.node(kind=kind, parts=parts, pos=_partsspan(parts))],
                         pos=_partsspan(parts))
 
-    handleAssert(p, p[0].kind == 'compound')
+    assert p[0].kind == 'compound'
 
 def _makeparts(p):
     parts = []
@@ -278,7 +268,7 @@ def p_arith_for_command(p):
                          | FOR ARITH_FOR_EXPRS list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY
                          | FOR ARITH_FOR_EXPRS DO compound_list DONE
                          | FOR ARITH_FOR_EXPRS LEFT_CURLY compound_list RIGHT_CURLY'''
-    handleNotImplemented(p, 'arithmetic for')
+    raise NotImplementedError('arithmetic for')
 
 def p_select_command(p):
     '''select_command : SELECT WORD newline_list DO list DONE
@@ -287,13 +277,26 @@ def p_select_command(p):
                       | SELECT WORD SEMICOLON newline_list LEFT_CURLY list RIGHT_CURLY
                       | SELECT WORD newline_list IN word_list list_terminator newline_list DO list DONE
                       | SELECT WORD newline_list IN word_list list_terminator newline_list LEFT_CURLY list RIGHT_CURLY'''
-    handleNotImplemented(p, 'select command')
+    raise NotImplementedError('select command')
 
 def p_case_command(p):
     '''case_command : CASE WORD newline_list IN newline_list ESAC
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
-    handleNotImplemented(p, 'case command')
+    parts = _makeparts(p)
+    rparts = []
+    for i, e in enumerate(parts):
+        print(e)
+        if isinstance(e, list):
+            rparts.extend(e)
+        else:
+            rparts.append(e)
+    p[0] = ast.node(kind='compound',
+                    redirects=[],
+                    #list=[ast.node(kind='compound', list=rparts, pos=_partsspan(rparts))],
+                    list=rparts,
+                    pos=_partsspan(rparts))
+    #raise NotImplementedError ('case command')
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -309,12 +312,12 @@ def p_function_def(p):
 def p_function_body(p):
     '''function_body : shell_command
                      | shell_command redirection_list'''
-    handleAssert(p, p[1].kind == 'compound')
+    assert p[1].kind == 'compound'
 
     p[0] = p[1]
     if len(p) == 3:
         p[0].redirects.extend(p[2])
-        handleAssert(p, p[0].pos[0] < p[0].redirects[-1].pos[1])
+        assert p[0].pos[0] < p[0].redirects[-1].pos[1]
         p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
 
 def p_subshell(p):
@@ -331,7 +334,7 @@ def p_coproc(p):
               | COPROC WORD shell_command
               | COPROC WORD shell_command redirection_list
               | COPROC simple_command'''
-    handleNotImplemented(p, 'coproc')
+    raise NotImplementedError('coproc')
 
 def p_if_command(p):
     '''if_command : IF compound_list THEN compound_list FI
@@ -356,11 +359,11 @@ def p_group_command(p):
 
 def p_arith_command(p):
     '''arith_command : ARITH_CMD'''
-    handleNotImplemented(p, 'arithmetic command')
+    raise NotImplementedError('arithmetic command')
 
 def p_cond_command(p):
     '''cond_command : COND_START COND_CMD COND_END'''
-    handleNotImplemented(p, 'cond command')
+    raise NotImplementedError('cond command')
 
 def p_elif_clause(p):
     '''elif_clause : ELIF compound_list THEN compound_list
@@ -377,14 +380,32 @@ def p_elif_clause(p):
 def p_case_clause(p):
     '''case_clause : pattern_list
                    | case_clause_sequence pattern_list'''
-    handleNotImplemented(p, 'case clause')
+    
+    if len(p) == 2:
+        p[0]=p[1]
+    else:
+       p[0] = p[2]
+       p[0].append(p[1])
+    #raise NotImplementedError('case clause')
+
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
                     | newline_list pattern RIGHT_PAREN newline_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN compound_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN newline_list'''
-    handleNotImplemented(p, 'pattern list')
+
+    parts = _makeparts(p)
+    print("*"*80)
+    print("PATTERN_LIST")
+    for i, e in enumerate(parts):
+        print("Part %d"%i)
+        print(e)
+    print("*"*80)
+    p[0]=parts
+    
+    #raise NotImplementedError('pattern list')
+
 
 def p_case_clause_sequence(p):
     '''case_clause_sequence : pattern_list SEMI_SEMI
@@ -393,12 +414,25 @@ def p_case_clause_sequence(p):
                             | case_clause_sequence pattern_list SEMI_AND
                             | pattern_list SEMI_SEMI_AND
                             | case_clause_sequence pattern_list SEMI_SEMI_AND'''
-    handleNotImplemented(p, 'case clause')
+
+    if len(p) == 3:
+        p[0]=p[1]
+    else:
+        p[0] = p[2]
+        p[0].append(p[1])
+
+    #raise NotImplementedError('case clause')
 
 def p_pattern(p):
     '''pattern : WORD
                | pattern BAR WORD'''
-    handleNotImplemented(p, 'pattern')
+    parserobj = p.context
+    if len(p) == 2:
+        p[0] = [_expandword(parserobj, p.slice[1])]
+    else:
+        p[0] = p[1]
+        p[0].append(_expandword(parserobj, p.slice[3]))
+    #raise NotImplementedError('pattern')
 
 def p_list(p):
     '''list : newline_list list0'''
@@ -531,7 +565,7 @@ def p_timespec(p):
     '''timespec : TIME
                 | TIME TIMEOPT
                 | TIME TIMEOPT TIMEIGN'''
-    handleNotImplemented(p, 'time command')
+    raise NotImplementedError('time command')
 
 def p_empty(p):
     '''empty :'''
@@ -541,9 +575,14 @@ def p_error(p):
     assert isinstance(p, tokenizer.token)
 
     if p.ttype == tokenizer.tokentype.EOF:
-        raise errors.ParsingError('unexpected EOF',
-                                  p.lexer.source,
-                                  len(p.lexer.source))
+        print(p)
+        parts = _makeparts([p])
+        #return ast.node(kind='operator', parts=parts, pos=parts.lexspan(1))
+        #return ast.node(kind='reservedword', word=p, pos=0)
+        pass
+        #raise errors.ParsingError('unexpected EOF',
+        #                          p.lexer.source,
+        #                          len(p.lexer.source))
     else:
         raise errors.ParsingError('unexpected token %r' % p.value,
                                   p.lexer.source, p.lexpos)
@@ -582,6 +621,7 @@ yaccparser.action[states[2]]['RIGHT_PAREN'] = -154
 def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False):
     '''like parse, but only consumes a single top level node, e.g. parsing
     'a\nb' will only return a node for 'a', leaving b unparsed'''
+    print("*"*80 + "\nPARSESINGLE\n" + s + '\n' + "*"*80)
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     tree = p.parse()
     if convertpos:
@@ -607,8 +647,10 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     expansionlimit is used to limit the amount of recursive parsing done due to
     command substitutions found during word expansion.
     '''
+    print("*"*80 + "\nPARSE\n" + s + '\n' + "*"*80)
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     parts = [p.parse()]
+    print("AFTER PARSE")
 
     class endfinder(ast.nodevisitor):
         def __init__(self):
@@ -621,11 +663,17 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     ef.visit(parts[-1])
     index = max(parts[-1].pos[1], ef.end) + 1
     while index < len(s):
-        part = _parser(s[index:], strictmode=strictmode).parse()
+        print("IN WHILE LOOP, IDX: %d"%index)
+        print(s[index:])
+        print("____________________")
+        string = s[index:]
+        if s[index:].strip() == '':
+            string = ''
+        part = _parser(string, strictmode=strictmode).parse()
 
         if not isinstance(part, ast.node):
             break
-
+        print("AFTER BREAK")
         ast.posshifter(index).visit(part)
         parts.append(part)
         ef = _endfinder()
@@ -633,8 +681,11 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
         index = max(parts[-1].pos[1], ef.end) + 1
 
     if convertpos:
+        print("IN CONVERT POS")
         for tree in parts:
             ast.posconverter(s).visit(tree)
+
+    print("AFTER EVERYTHING")
 
     return parts
 
@@ -682,6 +733,10 @@ class _parser(object):
                                        strictmode=strictmode,
                                        **tokenizerargs)
 
+        print("SELF.S")
+        print(self.s)
+        print("TOKENS")
+        print(self.tok)
         self.redirstack = self.tok.redirstack
 
     def parse(self):
