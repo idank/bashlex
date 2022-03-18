@@ -548,9 +548,8 @@ def p_error(p):
         raise errors.ParsingError('unexpected token %r' % p.value,
                                   p.lexer.source, p.lexpos)
 
-yaccparser = yacc.yacc(tabmodule='bashlex.parsetab',
-              outputdir=os.path.dirname(__file__),
-              debug=False)
+yaccparser = yacc.yacc(outputdir=os.path.dirname(__file__),         
+                        debug=False)
 
 # some hack to fix yacc's reduction on command substitutions:
 # which state to fix is derived from static transition tables
