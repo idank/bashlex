@@ -607,6 +607,8 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     expansionlimit is used to limit the amount of recursive parsing done due to
     command substitutions found during word expansion.
     '''
+    # remove starting and ending newlines and spaces
+    s = s.strip()
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     parts = [p.parse()]
 

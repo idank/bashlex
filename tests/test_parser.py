@@ -1103,3 +1103,59 @@ class test_parser(unittest.TestCase):
               ])
             ),
         )
+
+    
+    def test_newline(self):
+        s = 'a\nb'
+        self.assertASTsEquals(s,[
+            commandnode('a',
+              wordnode('a'),
+            ),
+            commandnode('b',
+              wordnode('b'),
+            )
+        ])
+
+    def test_multiple_internal_newlines(self):
+        s = 'a\n\n\nb'
+        self.assertASTsEquals(s,[
+            commandnode('a',
+              wordnode('a'),
+            ),
+            commandnode('b',
+              wordnode('b'),
+            )
+        ])
+
+    def test_starting_newlines(self):
+        s = '\n\n\na\nb'
+        self.assertASTsEquals(s,[
+            commandnode('a',
+              wordnode('a'),
+            ),
+            commandnode('b',
+              wordnode('b'),
+            )
+        ])
+    
+    def test_ending_newline(self):
+        s = 'a\nb\n'
+        self.assertASTsEquals(s,[
+            commandnode('a',
+              wordnode('a'),
+            ),
+            commandnode('b',
+              wordnode('b'),
+            )
+        ])
+    
+    def test_ending_newlines(self):
+        s = 'a\nb\n\n\n'
+        self.assertASTsEquals(s,[
+            commandnode('a',
+              wordnode('a'),
+            ),
+            commandnode('b',
+              wordnode('b'),
+            )
+        ])
