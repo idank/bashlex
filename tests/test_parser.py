@@ -67,6 +67,14 @@ def compoundnode(s, *parts, **kwargs):
     assert not kwargs
     return ast.node(kind='compound', s=s, list=list(parts), redirects=redirects)
 
+def casenode(parts, s):
+    return(ast.node(kind='compound',
+        redirects=[],
+        list = [ast.ndoe(kind='case', parts=list(parts), s=s)])
+
+def caseclausesequence(s, parts):
+    return ast.node(kind='caseclausesequence', parts=list(parts), s=s)
+
 def procsubnode(s, command):
     return ast.node(kind='processsubstitution', s=s, command=command)
 
@@ -1103,3 +1111,24 @@ class test_parser(unittest.TestCase):
               ])
             ),
         )
+    def test_cases(self):
+        return
+        # s = """
+        # case "$1" in
+        # 1) echo 1;;
+        # 2)
+        #   # comment
+        #   (
+        #    echo 2
+        #    echo 3
+        #   )
+        #   ;;
+        # 3) echo 3;;
+        # esac
+        # """
+        # self.assertASTEquals(s,
+        #     casenode(s, parts = [
+        #        reservedwordnode('case', 'case'),
+        #     ])
+        # )
+

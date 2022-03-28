@@ -284,19 +284,13 @@ def p_case_command(p):
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
     parts = _makeparts(p)
-    rparts = []
-    for i, e in enumerate(parts):
-        print(e)
-        if isinstance(e, list):
-            rparts.extend(e)
-        else:
-            rparts.append(e)
     p[0] = ast.node(kind='compound',
-                    redirects=[],
-                    #list=[ast.node(kind='compound', list=rparts, pos=_partsspan(rparts))],
-                    list=rparts,
-                    pos=_partsspan(rparts))
-    #raise NotImplementedError ('case command')
+                    redirects = [],
+                    list = [ast.node(kind='case',
+                                    parts = parts,
+                                    pos = _partsspan(parts))
+                            ],
+                    pos = _partsspan(parts))
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -386,8 +380,6 @@ def p_case_clause(p):
     else:
        p[0] = p[2]
        p[0].append(p[1])
-    #raise NotImplementedError('case clause')
-
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
@@ -395,17 +387,25 @@ def p_pattern_list(p):
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN compound_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN newline_list'''
 
-    parts = _makeparts(p)
-    print("*"*80)
-    print("PATTERN_LIST")
-    for i, e in enumerate(parts):
-        print("Part %d"%i)
-        print(e)
-    print("*"*80)
-    p[0]=parts
-    
-    #raise NotImplementedError('pattern list')
-
+    parserobj = p.context
+    parts = []
+    action = None
+    if p.slice[2].type == "pattern":
+        patterns = p[2]
+        parts.extend(patterns)
+        rparen = ast.node(kind='reservedword', word=p[3], pos = p.lexspan(3))
+        parts.append(rparen)
+    else:
+        lparen = ast.node(kind='reservedword', word=p[2], pos=p.lexspan(2))
+        patterns = p[3]
+        rparen = ast.node(kind='reservedword', word=p[4], pos=p.lexspan(4))
+        parts.extend([lparen, patterns, rparen])
+    if p.slice[-1].type == "compound_list":
+        # for some reason, p[-1] does not give the "true" last element, do not know why
+        action = p[len(p)-1]
+        parts.append(action)
+    p[0] = ast.node(kind="pattern_list",
+                        parts=parts, pos = _partsspan(parts))
 
 def p_case_clause_sequence(p):
     '''case_clause_sequence : pattern_list SEMI_SEMI
@@ -414,26 +414,23 @@ def p_case_clause_sequence(p):
                             | case_clause_sequence pattern_list SEMI_AND
                             | pattern_list SEMI_SEMI_AND
                             | case_clause_sequence pattern_list SEMI_SEMI_AND'''
-
     if len(p) == 3:
         p[0]=p[1]
     else:
         p[0] = p[2]
-        p[0].append(p[1])
-
-    #raise NotImplementedError('case clause')
+        p[0].parts.append(p[1])
 
 def p_pattern(p):
     '''pattern : WORD
                | pattern BAR WORD'''
+
     parserobj = p.context
     if len(p) == 2:
         p[0] = [_expandword(parserobj, p.slice[1])]
     else:
         p[0] = p[1]
         p[0].append(_expandword(parserobj, p.slice[3]))
-    #raise NotImplementedError('pattern')
-
+    
 def p_list(p):
     '''list : newline_list list0'''
     p[0] = p[2]
@@ -575,14 +572,9 @@ def p_error(p):
     assert isinstance(p, tokenizer.token)
 
     if p.ttype == tokenizer.tokentype.EOF:
-        print(p)
-        parts = _makeparts([p])
-        #return ast.node(kind='operator', parts=parts, pos=parts.lexspan(1))
-        #return ast.node(kind='reservedword', word=p, pos=0)
-        pass
-        #raise errors.ParsingError('unexpected EOF',
-        #                          p.lexer.source,
-        #                          len(p.lexer.source))
+        raise errors.ParsingError('unexpected EOF',
+                                  p.lexer.source,
+                                  len(p.lexer.source))
     else:
         raise errors.ParsingError('unexpected token %r' % p.value,
                                   p.lexer.source, p.lexpos)
@@ -621,7 +613,6 @@ yaccparser.action[states[2]]['RIGHT_PAREN'] = -154
 def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False):
     '''like parse, but only consumes a single top level node, e.g. parsing
     'a\nb' will only return a node for 'a', leaving b unparsed'''
-    print("*"*80 + "\nPARSESINGLE\n" + s + '\n' + "*"*80)
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     tree = p.parse()
     if convertpos:
@@ -647,10 +638,8 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     expansionlimit is used to limit the amount of recursive parsing done due to
     command substitutions found during word expansion.
     '''
-    print("*"*80 + "\nPARSE\n" + s + '\n' + "*"*80)
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
     parts = [p.parse()]
-    print("AFTER PARSE")
 
     class endfinder(ast.nodevisitor):
         def __init__(self):
@@ -663,17 +652,12 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     ef.visit(parts[-1])
     index = max(parts[-1].pos[1], ef.end) + 1
     while index < len(s):
-        print("IN WHILE LOOP, IDX: %d"%index)
-        print(s[index:])
-        print("____________________")
-        string = s[index:]
-        if s[index:].strip() == '':
-            string = ''
-        part = _parser(string, strictmode=strictmode).parse()
+
+        part = _parser(s[index:], strictmode=strictmode).parse()
 
         if not isinstance(part, ast.node):
             break
-        print("AFTER BREAK")
+
         ast.posshifter(index).visit(part)
         parts.append(part)
         ef = _endfinder()
@@ -681,11 +665,8 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
         index = max(parts[-1].pos[1], ef.end) + 1
 
     if convertpos:
-        print("IN CONVERT POS")
         for tree in parts:
             ast.posconverter(s).visit(tree)
-
-    print("AFTER EVERYTHING")
 
     return parts
 
@@ -733,10 +714,6 @@ class _parser(object):
                                        strictmode=strictmode,
                                        **tokenizerargs)
 
-        print("SELF.S")
-        print(self.s)
-        print("TOKENS")
-        print(self.tok)
         self.redirstack = self.tok.redirstack
 
     def parse(self):
