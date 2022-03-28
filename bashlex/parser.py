@@ -12,6 +12,16 @@ precedence = (
     ('right', 'BAR', 'BAR_AND')
 )
 
+def handleNotImplemented(p, type):
+    if len(p) == 2:
+        raise NotImplementedError('type = {%s}, token = {%s}' % (type, p[1]))
+    else:
+        raise NotImplementedError('type = {%s}, token = {%s}, parts = {%s}' % (type, p[1], p[2]))
+
+def handleAssert(p, test):
+    if not test:
+        raise AssertionError('token = {%s}' % p[1])
+
 def p_inputunit(p):
     '''inputunit : simple_list simple_list_terminator
                  | NEWLINE
@@ -186,9 +196,9 @@ def p_command(p):
     if isinstance(p[1], ast.node):
         p[0] = p[1]
         if len(p) == 3:
-            assert p[0].kind == 'compound'
+            handleAssert(p, p[0].kind == 'compound')
             p[0].redirects.extend(p[2])
-            assert p[0].pos[0] < p[0].redirects[-1].pos[1]
+            handleAssert(p, p[0].pos[0] < p[0].redirects[-1].pos[1])
             p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
     else:
         p[0] = ast.node(kind='command', parts=p[1], pos=_partsspan(p[1]))
@@ -209,7 +219,7 @@ def p_shell_command(p):
         p[0] = p[1]
     else:
         # while or until
-        assert p[2].kind == 'list'
+        handleAssert(p, p[2].kind == 'list')
 
         parts = _makeparts(p)
         kind = parts[0].word
@@ -219,7 +229,7 @@ def p_shell_command(p):
                         list=[ast.node(kind=kind, parts=parts, pos=_partsspan(parts))],
                         pos=_partsspan(parts))
 
-    assert p[0].kind == 'compound'
+    handleAssert(p, p[0].kind == 'compound')
 
 def _makeparts(p):
     parts = []
@@ -268,7 +278,7 @@ def p_arith_for_command(p):
                          | FOR ARITH_FOR_EXPRS list_terminator newline_list LEFT_CURLY compound_list RIGHT_CURLY
                          | FOR ARITH_FOR_EXPRS DO compound_list DONE
                          | FOR ARITH_FOR_EXPRS LEFT_CURLY compound_list RIGHT_CURLY'''
-    raise NotImplementedError('arithmetic for')
+    handleNotImplemented(p, 'arithmetic for')
 
 def p_select_command(p):
     '''select_command : SELECT WORD newline_list DO list DONE
@@ -277,20 +287,13 @@ def p_select_command(p):
                       | SELECT WORD SEMICOLON newline_list LEFT_CURLY list RIGHT_CURLY
                       | SELECT WORD newline_list IN word_list list_terminator newline_list DO list DONE
                       | SELECT WORD newline_list IN word_list list_terminator newline_list LEFT_CURLY list RIGHT_CURLY'''
-    raise NotImplementedError('select command')
+    handleNotImplemented(p, 'select command')
 
 def p_case_command(p):
     '''case_command : CASE WORD newline_list IN newline_list ESAC
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
-    parts = _makeparts(p)
-    p[0] = ast.node(kind='compound',
-                    redirects = [],
-                    list = [ast.node(kind='case',
-                                    parts = parts,
-                                    pos = _partsspan(parts))
-                            ],
-                    pos = _partsspan(parts))
+    handleNotImplemented(p, 'case command')
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -306,12 +309,12 @@ def p_function_def(p):
 def p_function_body(p):
     '''function_body : shell_command
                      | shell_command redirection_list'''
-    assert p[1].kind == 'compound'
+    handleAssert(p, p[1].kind == 'compound')
 
     p[0] = p[1]
     if len(p) == 3:
         p[0].redirects.extend(p[2])
-        assert p[0].pos[0] < p[0].redirects[-1].pos[1]
+        handleAssert(p, p[0].pos[0] < p[0].redirects[-1].pos[1])
         p[0].pos = (p[0].pos[0], p[0].redirects[-1].pos[1])
 
 def p_subshell(p):
@@ -328,7 +331,7 @@ def p_coproc(p):
               | COPROC WORD shell_command
               | COPROC WORD shell_command redirection_list
               | COPROC simple_command'''
-    raise NotImplementedError('coproc')
+    handleNotImplemented(p, 'coproc')
 
 def p_if_command(p):
     '''if_command : IF compound_list THEN compound_list FI
@@ -353,11 +356,11 @@ def p_group_command(p):
 
 def p_arith_command(p):
     '''arith_command : ARITH_CMD'''
-    raise NotImplementedError('arithmetic command')
+    handleNotImplemented(p, 'arithmetic command')
 
 def p_cond_command(p):
     '''cond_command : COND_START COND_CMD COND_END'''
-    raise NotImplementedError('cond command')
+    handleNotImplemented(p, 'cond command')
 
 def p_elif_clause(p):
     '''elif_clause : ELIF compound_list THEN compound_list
@@ -430,7 +433,7 @@ def p_pattern(p):
     else:
         p[0] = p[1]
         p[0].append(_expandword(parserobj, p.slice[3]))
-    
+
 def p_list(p):
     '''list : newline_list list0'''
     p[0] = p[2]
@@ -562,7 +565,7 @@ def p_timespec(p):
     '''timespec : TIME
                 | TIME TIMEOPT
                 | TIME TIMEOPT TIMEIGN'''
-    raise NotImplementedError('time command')
+    handleNotImplemented(p, 'time command')
 
 def p_empty(p):
     '''empty :'''
@@ -652,7 +655,6 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     ef.visit(parts[-1])
     index = max(parts[-1].pos[1], ef.end) + 1
     while index < len(s):
-
         part = _parser(s[index:], strictmode=strictmode).parse()
 
         if not isinstance(part, ast.node):
