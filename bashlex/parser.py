@@ -386,9 +386,8 @@ def p_case_clause(p):
     if len(p) == 2:
         p[0]=p[1]
     else:
-        print("SWITCHAROO (small edition)")
         p[0] = p[2]
-        p[0].append(p[1])
+        p[0].parts.append(p[1])
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
@@ -396,7 +395,6 @@ def p_pattern_list(p):
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN compound_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN newline_list'''
 
-    parserobj = p.context
     parts = []
     action = None
     if p.slice[2].type == "pattern":
@@ -410,13 +408,8 @@ def p_pattern_list(p):
         rparen = ast.node(kind='reservedword', word=p[4], pos=p.lexspan(4))
         parts.extend([lparen, patterns, rparen])
     if p.slice[-1].type == "compound_list":
-        # for some reason, p[-1] does not give the "true" last element, do not know why
         action = p[len(p)-1]
         parts.append(action)
-        print("NODE")
-        print(p)
-        print("ACTION:")
-        print(action)
     p[0] = ast.node(kind="pattern_list",
                         parts=parts, pos = _partsspan(parts))
 
@@ -433,28 +426,9 @@ def p_case_clause_sequence(p):
         p[0]=p[1]
         p[0].parts.append(end)
     else:
-        print("HIT SWITCHEROO\nP1")
-        print(p[1])
-        print("P2")
-        print(p[2])
-        i = 0
-        for part in parts:
-            print("PARTS[%d]"%i)
-            print(part)
-            i+=1
         p[0] = p[2]
-        print("END")
-        print(end)
         p[0].parts.append(end)
         p[0].parts.append(p[1])
-        #p1_parts = _makeparts(p[1])
-        #p1 = ast.node(kind='case_clause_sequence', parts=[p[1]], redirects=[], pos=_partsspan(p1_parts))
-        #p[0] = p[2]
-        #p[0].parts.append(p1)
-        #p[0] = ast.node(kind='case_clause_sequence', parts=[parts[1], parts[0]], redirects=[], pos=_partsspan(parts))
-
-        print("P[0]")
-        print(p[0])
 
 def p_pattern(p):
     '''pattern : WORD
