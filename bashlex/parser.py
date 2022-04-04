@@ -293,7 +293,12 @@ def p_case_command(p):
     '''case_command : CASE WORD newline_list IN newline_list ESAC
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
-    handleNotImplemented(p, 'case command')
+    parts = _makeparts(p)
+    p[0] = ast.node(kind='compound',
+                    redirects = [],
+                    list=[ast.node(kind='case', parts=parts, pos=_partsspan(parts))],
+                    pos=_partsspan(parts))
+    #handleNotImplemented(p, 'case command')
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -381,8 +386,9 @@ def p_case_clause(p):
     if len(p) == 2:
         p[0]=p[1]
     else:
-       p[0] = p[2]
-       p[0].append(p[1])
+        print("SWITCHAROO (small edition)")
+        p[0] = p[2]
+        p[0].append(p[1])
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
@@ -407,6 +413,10 @@ def p_pattern_list(p):
         # for some reason, p[-1] does not give the "true" last element, do not know why
         action = p[len(p)-1]
         parts.append(action)
+        print("NODE")
+        print(p)
+        print("ACTION:")
+        print(action)
     p[0] = ast.node(kind="pattern_list",
                         parts=parts, pos = _partsspan(parts))
 
@@ -417,11 +427,34 @@ def p_case_clause_sequence(p):
                             | case_clause_sequence pattern_list SEMI_AND
                             | pattern_list SEMI_SEMI_AND
                             | case_clause_sequence pattern_list SEMI_SEMI_AND'''
+    parts = _makeparts(p)
+    end = parts[len(parts)-1]
     if len(p) == 3:
         p[0]=p[1]
+        p[0].parts.append(end)
     else:
+        print("HIT SWITCHEROO\nP1")
+        print(p[1])
+        print("P2")
+        print(p[2])
+        i = 0
+        for part in parts:
+            print("PARTS[%d]"%i)
+            print(part)
+            i+=1
         p[0] = p[2]
+        print("END")
+        print(end)
+        p[0].parts.append(end)
         p[0].parts.append(p[1])
+        #p1_parts = _makeparts(p[1])
+        #p1 = ast.node(kind='case_clause_sequence', parts=[p[1]], redirects=[], pos=_partsspan(p1_parts))
+        #p[0] = p[2]
+        #p[0].parts.append(p1)
+        #p[0] = ast.node(kind='case_clause_sequence', parts=[parts[1], parts[0]], redirects=[], pos=_partsspan(parts))
+
+        print("P[0]")
+        print(p[0])
 
 def p_pattern(p):
     '''pattern : WORD

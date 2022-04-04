@@ -152,7 +152,7 @@ class nodevisitor(object):
         pass
     def visitcase(self, n, parts):
         pass
-    def visitcase_clause_sequence(self, n, parts, sequence):
+    def visitcase_clause_sequence(self, n, parts):
         pass
     def visitpattern(self, n, parts):
         pass

@@ -67,13 +67,16 @@ def compoundnode(s, *parts, **kwargs):
     assert not kwargs
     return ast.node(kind='compound', s=s, list=list(parts), redirects=redirects)
 
-def casenode(parts, s):
+def casenode(s, *parts):
     return(ast.node(kind='compound',
         redirects=[],
-        list = [ast.ndoe(kind='case', parts=list(parts), s=s)])
+        list = [ast.node(kind='case', parts=list(parts), s=s)]))
 
-def caseclausesequence(s, parts):
+def caseclausesequence(s, *parts):
     return ast.node(kind='caseclausesequence', parts=list(parts), s=s)
+
+def patternlistnode(s, *parts):
+    return ast.node(kind='patternlist', parts=list(parts), s=s)
 
 def procsubnode(s, command):
     return ast.node(kind='processsubstitution', s=s, command=command)
@@ -1111,24 +1114,52 @@ class test_parser(unittest.TestCase):
               ])
             ),
         )
+
     def test_cases(self):
-        return
-        # s = """
-        # case "$1" in
-        # 1) echo 1;;
-        # 2)
-        #   # comment
-        #   (
-        #    echo 2
-        #    echo 3
-        #   )
-        #   ;;
-        # 3) echo 3;;
-        # esac
-        # """
-        # self.assertASTEquals(s,
-        #     casenode(s, parts = [
-        #        reservedwordnode('case', 'case'),
-        #     ])
-        # )
+        #return
+        s = """
+            case "$1" in
+            1) echo foo
+            ;;
+            *)
+            (
+                echo bar
+            )
+            ;;
+            esac
+            """
+        self.assertASTEquals(s,
+            compoundnode(s,
+                casenode(s,
+                    reservedwordnode('case', 'case'),
+                    wordnode('$1', 
+                        parameternode('1', '1')
+                        ),
+                    reservedwordnode('in', 'in'),
+                    patternlistnode('1) echo foo\n;;\n*)\n(\necho bar\n);;\n',
+                        wordnode('*', '*'),
+                        reservedwordnode(')', ')'),
+                        compoundnode('(\necho bar\n)',
+                            reservedwordnode('(', '('),
+                            commandnode('echo bar',
+                                wordnode('echo', 'echo'),
+                                wordnode('bar', 'bar')
+                                ),
+                            reservedwordnode(')', ')')
+                            ),
+                            reservedwordnode(';;', ';;'),
+                            patternlistnode('1) echo foo\n;;',
+                                wordnode('1', '1'),
+                                reservedwordnode(')', ')'),
+                                commandnode('echo foo\n',
+                                    wordnode('echo', 'echo'),
+                                    wordnode('foo', 'foo')
+                                    ),
+                                reservedwordnode(';;', ';;')
+                                )
+                        ),
+                    reservedwordnode('esac', 'esac')
+                    )
+                )
+            )
 
