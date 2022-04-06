@@ -345,3 +345,10 @@ class test_tokenizer(unittest.TestCase):
                           t(tt.WORD, 'a', [0, 1]),
                           t(tt.WORD, "'b  '", [2, 7], set([flags.word.QUOTED])),
                           t(tt.WORD, 'c', [8, 9])])
+
+    def test_escaped_newline(self):
+        s= """a \\\nb"""
+        self.assertTokens(s, [
+            t(tt.WORD, 'a', [0, 1]),
+            t(tt.WORD, 'b', [4, 5])
+        ])
