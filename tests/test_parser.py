@@ -1103,3 +1103,29 @@ class test_parser(unittest.TestCase):
               ])
             ),
         )
+
+    def test_backslash_newline(self):
+      s = 'for hook in \\\n\t/etc/* \\\n\t/lib/* \\\n\t/asdf/*\ndo\n\techo hook\ndone'
+      self.assertASTEquals(s,
+                  compoundnode(s, fornode(s,
+                    reservedwordnode('for', 'for'),
+                    wordnode('hook','hook'),
+                    reservedwordnode('in','in'),
+                    wordnode('/etc/*','/etc/*'),
+                    wordnode('/lib/*','/lib/*'),
+                    wordnode('/asdf/*','/asdf/*'),
+                    reservedwordnode('do', 'do'),
+                    commandnode('echo hook',
+                                wordnode('echo'),
+                                wordnode('hook')),
+                    reservedwordnode('done', 'done'),
+                                          )))
+      
+    def test_ending_newlines(self):
+      s = 'echo hello world\n\n\n'
+      self.assertASTEquals(s, commandnode(s.strip(), 
+                                                  wordnode('echo'),
+                                                  wordnode('hello'),
+                                                  wordnode('world')))
+      
+      

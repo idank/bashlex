@@ -1042,6 +1042,8 @@ class tokenizer(object):
 
             if c == '\\' and remove_quoted_newline and self._shell_input_line[self._shell_input_line_index] == '\n':
                 self._line_number += 1
+                # skip past the newline
+                self._shell_input_line_index += 1
                 continue
             else:
                 return c
