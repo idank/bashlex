@@ -364,7 +364,11 @@ class LRParser:
                 debug.debug('Stack  : %s',
                             ('%s . %s' % (' '.join([xx.type for xx in symstack][1:]), str(lookahead))).lstrip())
 
-            
+            if state == 0 and ltype == '$end' and all([xx.type == 'NEWLINE' for xx in symstack[1:]]):
+                # we're at the end and everything else is a newline
+                # so we're going to return
+                # fixes multiple newlines at end
+                t = 0
             if t is not None:
                 if t > 0:
                     if t == newline and state == 0:
