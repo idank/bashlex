@@ -298,7 +298,6 @@ def p_case_command(p):
                     redirects = [],
                     list=[ast.node(kind='case', parts=parts, pos=_partsspan(parts))],
                     pos=_partsspan(parts))
-    #handleNotImplemented(p, 'case command')
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -397,16 +396,19 @@ def p_pattern_list(p):
 
     parts = []
     action = None
+    # If we are in cases 1 or 2, we need to construct a reservedwrod node for right parentheses
     if p.slice[2].type == "pattern":
         patterns = p[2]
         parts.extend(patterns)
         rparen = ast.node(kind='reservedword', word=p[3], pos = p.lexspan(3))
         parts.append(rparen)
+    # If we are in cases 3 or 4, we need to construct a reservedword node for left and right parentheses
     else:
         lparen = ast.node(kind='reservedword', word=p[2], pos=p.lexspan(2))
         patterns = p[3]
         rparen = ast.node(kind='reservedword', word=p[4], pos=p.lexspan(4))
         parts.extend([lparen, patterns, rparen])
+    # If we are in cases 1 or 3, we need to include the compound_list node at the end
     if p.slice[-1].type == "compound_list":
         action = p[len(p)-1]
         parts.append(action)
