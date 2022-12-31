@@ -293,7 +293,11 @@ def p_case_command(p):
     '''case_command : CASE WORD newline_list IN newline_list ESAC
                     | CASE WORD newline_list IN case_clause_sequence newline_list ESAC
                     | CASE WORD newline_list IN case_clause ESAC'''
-    handleNotImplemented(p, 'case command')
+    parts = _makeparts(p)
+    p[0] = ast.node(kind='compound',
+                    redirects = [],
+                    list=[ast.node(kind='case', parts=parts, pos=_partsspan(parts))],
+                    pos=_partsspan(parts))
 
 def p_function_def(p):
     '''function_def : WORD LEFT_PAREN RIGHT_PAREN newline_list function_body
@@ -377,14 +381,39 @@ def p_elif_clause(p):
 def p_case_clause(p):
     '''case_clause : pattern_list
                    | case_clause_sequence pattern_list'''
-    handleNotImplemented(p, 'case clause')
+    
+    if len(p) == 2:
+        p[0]=p[1]
+    else:
+        p[0] = p[2]
+        p[0].parts.append(p[1])
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
                     | newline_list pattern RIGHT_PAREN newline_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN compound_list
                     | newline_list LEFT_PAREN pattern RIGHT_PAREN newline_list'''
-    handleNotImplemented(p, 'pattern list')
+
+    parts = []
+    action = None
+    # If we are in cases 1 or 2, we need to construct a reservedwrod node for right parentheses
+    if p.slice[2].type == "pattern":
+        patterns = p[2]
+        parts.extend(patterns)
+        rparen = ast.node(kind='reservedword', word=p[3], pos = p.lexspan(3))
+        parts.append(rparen)
+    # If we are in cases 3 or 4, we need to construct a reservedword node for left and right parentheses
+    else:
+        lparen = ast.node(kind='reservedword', word=p[2], pos=p.lexspan(2))
+        patterns = p[3]
+        rparen = ast.node(kind='reservedword', word=p[4], pos=p.lexspan(4))
+        parts.extend([lparen, patterns, rparen])
+    # If we are in cases 1 or 3, we need to include the compound_list node at the end
+    if p.slice[-1].type == "compound_list":
+        action = p[len(p)-1]
+        parts.append(action)
+    p[0] = ast.node(kind="pattern_list",
+                        parts=parts, pos = _partsspan(parts))
 
 def p_case_clause_sequence(p):
     '''case_clause_sequence : pattern_list SEMI_SEMI
@@ -393,12 +422,26 @@ def p_case_clause_sequence(p):
                             | case_clause_sequence pattern_list SEMI_AND
                             | pattern_list SEMI_SEMI_AND
                             | case_clause_sequence pattern_list SEMI_SEMI_AND'''
-    handleNotImplemented(p, 'case clause')
+    parts = _makeparts(p)
+    end = parts[len(parts)-1]
+    if len(p) == 3:
+        p[0]=p[1]
+        p[0].parts.append(end)
+    else:
+        p[0] = p[2]
+        p[0].parts.append(end)
+        p[0].parts.append(p[1])
 
 def p_pattern(p):
     '''pattern : WORD
                | pattern BAR WORD'''
-    handleNotImplemented(p, 'pattern')
+
+    parserobj = p.context
+    if len(p) == 2:
+        p[0] = [_expandword(parserobj, p.slice[1])]
+    else:
+        p[0] = p[1]
+        p[0].append(_expandword(parserobj, p.slice[3]))
 
 def p_list(p):
     '''list : newline_list list0'''
