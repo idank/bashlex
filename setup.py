@@ -3,11 +3,11 @@ from setuptools import setup
 
 setup(
     name='bashlex',
-    version='0.17',
+    version='0.18',
     url='https://github.com/idank/bashlex.git',
     license='GPLv3+',
     author='Idan Kamara',
-    author_email='idankk86@gmail.com',
+    author_email='i@idank.me',
     description='Python parser for bash',
     long_description='''bashlex is a Python port of the parser used internally by GNU bash.
 
