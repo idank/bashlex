@@ -24,7 +24,7 @@ class node(object):
         if not isinstance(other, node):
             return False
         return self.__dict__ == other.__dict__
-    
+
     def __hash__(self):
         return hash(tuple(sorted(self.__dict__)))
 
@@ -59,7 +59,7 @@ class nodevisitor(object):
                     self.visit(child)
                 for child in n.redirects:
                     self.visit(child)
-        elif k in ('if', 'for', 'while', 'until'):
+        elif k in ('if', 'for', 'while', 'until', 'case', 'pattern'):
             dochild = self._visitnode(n, n.parts)
             if dochild is None or dochild:
                 for child in n.parts:
@@ -140,6 +140,11 @@ class nodevisitor(object):
         pass
     def visitcommandsubstitution(self, n, command):
         pass
+    def visitcase(self, node, parts):
+        pass
+    def visitpattern(self, node, parts):
+        pass
+
 
 def _dump(tree, indent='  '):
     def _format(n, level=0):
