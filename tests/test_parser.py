@@ -82,6 +82,12 @@ def fornode(s, *parts):
 def whilenode(s, *parts):
     return ast.node(kind='while', parts=list(parts), s=s)
 
+def casenode(s, *parts):
+    return ast.node(kind='case', parts=list(parts), s=s)
+
+def patternnode(s, *parts):
+    return ast.node(kind='pattern', parts=list(parts), s=s)
+
 def functionnode(s, name, body, *parts):
     return ast.node(kind='function', name=name, body=body, parts=list(parts), s=s)
 
@@ -1133,3 +1139,101 @@ class test_parser(unittest.TestCase):
                                                   wordnode('echo'),
                                                   wordnode('hello'),
                                                   wordnode('world')))
+
+    def test_case_simplest(self):
+      s = 'case ${1} in esac'
+      self.assertASTEquals(s,
+        compoundnode(s,
+          casenode(s,
+            reservedwordnode('case', 'case'),
+            wordnode('${1}', '${1}', [
+                parameternode('1', '${1}'),
+            ]),
+            reservedwordnode('in', 'in'),
+            reservedwordnode('esac', 'esac'),
+      )))
+
+    def test_case_claues(self):
+      s = 'case ${1} in (pattern) echo pattern; esac'
+      self.assertASTEquals(s,
+        compoundnode(s,
+          casenode(s,
+            reservedwordnode('case', 'case'),
+            wordnode('${1}', '${1}', [
+                parameternode('1', '${1}'),
+            ]),
+            reservedwordnode('in', 'in'),
+            compoundnode('(pattern) echo pattern;',
+              reservedwordnode('(', '('),
+              patternnode('pattern',
+                wordnode('pattern', 'pattern'),
+              ),
+              reservedwordnode(')', ')'),
+              listnode('echo pattern;',
+                commandnode('echo pattern',
+                  wordnode('echo', 'echo'),
+                  wordnode('pattern', 'pattern'),
+                ),
+                operatornode(';', ';'),
+              ),
+            ),
+            reservedwordnode('esac', 'esac'),
+      )))
+
+    def test_case_clause_sequence(self):
+      s = """case ${1} in
+        pattern1) echo pattern1;;
+        pattern2|pattern3)
+          echo pattern 2; echo pattern 3
+          ;;
+        *);;
+      esac"""
+      self.assertASTEquals(s,
+        compoundnode(s,
+          casenode(s,
+            reservedwordnode('case', 'case'),
+            wordnode('${1}', '${1}', [
+              parameternode('1', '${1}'),
+            ]),
+            reservedwordnode('in', 'in'),
+            compoundnode('pattern1) echo pattern1',
+              patternnode('pattern1', wordnode('pattern1', 'pattern1')),
+              reservedwordnode(')', ')'),
+              commandnode('echo pattern1',
+                wordnode('echo', 'echo'),
+                wordnode('pattern1', 'pattern1'),
+              ),
+            ),
+            reservedwordnode(';;', ';;'),
+            compoundnode('pattern2|pattern3)\n          echo pattern 2; echo pattern 3\n',
+              patternnode('pattern2|pattern3',
+                wordnode('pattern2', 'pattern2'),
+                reservedwordnode('|', '|'),
+                wordnode('pattern3', 'pattern3'),
+              ),
+              reservedwordnode(')', ')'),
+              listnode('echo pattern 2; echo pattern 3\n',
+                commandnode('echo pattern 2',
+                  wordnode('echo', 'echo'),
+                  wordnode('pattern', 'pattern'),
+                  wordnode('2', '2')
+                ),
+                operatornode(';', ';'),
+                commandnode('echo pattern 3',
+                  wordnode('echo', 'echo'),
+                  wordnode('pattern', 'pattern'),
+                  wordnode('3', '3')
+                ),
+                operatornode('\n', '\n'),
+              ),
+            ),
+            reservedwordnode(';;', ';;'),
+            compoundnode('*)',
+              patternnode('*', wordnode('*', '*')),
+              reservedwordnode(')', ')'),
+            ),
+            reservedwordnode(';;', ';;'),
+            reservedwordnode('esac', 'esac'),
+          )
+        )
+      )
