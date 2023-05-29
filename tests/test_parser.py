@@ -1153,7 +1153,7 @@ class test_parser(unittest.TestCase):
             reservedwordnode('esac', 'esac'),
       )))
 
-    def test_case_claues(self):
+    def test_case_clause(self):
       s = 'case ${1} in (pattern) echo pattern; esac'
       self.assertASTEquals(s,
         compoundnode(s,
