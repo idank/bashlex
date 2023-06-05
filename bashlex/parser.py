@@ -13,7 +13,10 @@ precedence = (
 )
 
 def handleNotImplemented(p, type):
-    if len(p) == 2:
+    if p.context._proceedonerror:
+        parts = _makeparts(p)
+        p[0] = ast.node(kind='unimplemented', parts=parts, pos=_partsspan(parts))
+    elif len(p) == 2:
         raise NotImplementedError('type = {%s}, token = {%s}' % (type, p[1]))
     else:
         raise NotImplementedError('type = {%s}, token = {%s}, parts = {%s}' % (type, p[1], p[2]))
@@ -611,16 +614,16 @@ yaccparser.action[states[0]]['RIGHT_PAREN'] = -155
 yaccparser.action[states[1]]['RIGHT_PAREN'] = -148
 yaccparser.action[states[2]]['RIGHT_PAREN'] = -154
 
-def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False):
+def parsesingle(s, strictmode=True, expansionlimit=None, convertpos=False, proceedonerror=False):
     '''like parse, but only consumes a single top level node, e.g. parsing
     'a\nb' will only return a node for 'a', leaving b unparsed'''
-    p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
+    p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit, proceedonerror=proceedonerror)
     tree = p.parse()
     if convertpos:
         ast.posconverter(s).visit(tree)
     return tree
 
-def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
+def parse(s, strictmode=True, expansionlimit=None, convertpos=False, proceedonerror=False):
     '''parse the input string, returning a list of nodes
 
     top level node kinds are:
@@ -638,8 +641,10 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
 
     expansionlimit is used to limit the amount of recursive parsing done due to
     command substitutions found during word expansion.
+
+    when proceedonerror set, the parser will return AST nodes for unimplemented features, etc.
     '''
-    p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit)
+    p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit, proceedonerror=proceedonerror)
     parts = [p.parse()]
 
     class endfinder(ast.nodevisitor):
@@ -653,7 +658,7 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False):
     ef.visit(parts[-1])
     index = max(parts[-1].pos[1], ef.end) + 1
     while index < len(s):
-        part = _parser(s[index:], strictmode=strictmode).parse()
+        part = _parser(s[index:], strictmode=strictmode, proceedonerror=proceedonerror).parse()
 
         if not isinstance(part, ast.node):
             break
@@ -698,12 +703,14 @@ class _parser(object):
     when we're in the middle of parsing. as a hack, we shove it into the
     YaccProduction context attribute to make it accessible.
     '''
-    def __init__(self, s, strictmode=True, expansionlimit=None, tokenizerargs=None):
+    def __init__(self, s, strictmode=True, expansionlimit=None, tokenizerargs=None,
+                 proceedonerror=None):
         assert expansionlimit is None or isinstance(expansionlimit, int)
 
         self.s = s
         self._strictmode = strictmode
         self._expansionlimit = expansionlimit
+        self._proceedonerror = proceedonerror
 
         if tokenizerargs is None:
             tokenizerargs = {}
