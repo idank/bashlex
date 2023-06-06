@@ -16,7 +16,8 @@ def handleNotImplemented(p, type):
     if p.context._proceedonerror:
         parts = _makeparts(p)
         p[0] = ast.node(kind='unimplemented', parts=parts, pos=_partsspan(parts))
-    elif len(p) == 2:
+        return
+    if len(p) == 2:
         raise NotImplementedError('type = {%s}, token = {%s}' % (type, p[1]))
     else:
         raise NotImplementedError('type = {%s}, token = {%s}, parts = {%s}' % (type, p[1], p[2]))
