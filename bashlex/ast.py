@@ -92,6 +92,11 @@ class nodevisitor(object):
             dochild = self._visitnode(n, n.command)
             if dochild is None or dochild:
                 self.visit(n.command)
+        elif k == 'unimplemented':
+            dochild = self._visitnode(n, n.parts)
+            if dochild is None or dochild:
+                for child in n.parts:
+                    self.visit(child)
         else:
             raise ValueError('unknown node kind %r' % k)
         self.visitnodeend(n)
@@ -143,6 +148,8 @@ class nodevisitor(object):
     def visitcase(self, node, parts):
         pass
     def visitpattern(self, node, parts):
+        pass
+    def visitunimplemented(self, node, parts):
         pass
 
 

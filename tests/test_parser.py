@@ -91,6 +91,9 @@ def patternnode(s, *parts):
 def functionnode(s, name, body, *parts):
     return ast.node(kind='function', name=name, body=body, parts=list(parts), s=s)
 
+def unimplementednode(s, *parts):
+    return ast.node(kind='unimplemented', parts=list(parts), s=s)
+
 class test_parser(unittest.TestCase):
 
     def setUp(self):
@@ -1237,3 +1240,13 @@ class test_parser(unittest.TestCase):
           )
         )
       )
+
+    def test_unimplemented(self):
+      s = 'coproc echo'
+      self.assertASTEquals(s,
+              unimplementednode(s,
+                  reservedwordnode('coproc', 'coproc'),
+                  wordnode('echo', 'echo')),
+              proceedonerror=True)
+      with self.assertRaises(NotImplementedError):
+          parse(s, proceedonerror=False)
