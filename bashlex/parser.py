@@ -647,6 +647,8 @@ def parse(s, strictmode=True, expansionlimit=None, convertpos=False, proceedoner
     '''
     p = _parser(s, strictmode=strictmode, expansionlimit=expansionlimit, proceedonerror=proceedonerror)
     parts = [p.parse()]
+    if parts[0] is None or isinstance(parts[0], str):
+        return []
 
     class endfinder(ast.nodevisitor):
         def __init__(self):
