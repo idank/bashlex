@@ -63,9 +63,12 @@ traverse the ast to do more complicated things.
 
 Currently the parser has no support for:
 
+- comments
+- empty lines
 - arithmetic expressions $((..))
 - the more complicated parameter expansions such as ${parameter#word} are taken
   literally and do not produce child nodes
+- bash arrays
 
 ## Debugging
 
