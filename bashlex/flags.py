@@ -52,4 +52,5 @@ word = enum.Enum('wordflags', [
     'ASSNGLOBAL', # word is a global assignment to declare (declare/typeset -g)
     'NOBRACE', # Don't perform brace expansion
     'ASSIGNINT', # word is an integer assignment to declare
+    'UNIMPLEMENTED', # word uses unimplemented feature (e.g., array)
     ])

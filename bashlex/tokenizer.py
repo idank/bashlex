@@ -199,7 +199,8 @@ eoftoken = token(tokentype.EOF, None)
 
 class tokenizer(object):
     def __init__(self, s, parserstate, strictmode=True, eoftoken=None,
-                 lastreadtoken=None, tokenbeforethat=None, twotokensago=None):
+                 lastreadtoken=None, tokenbeforethat=None, twotokensago=None,
+                 proceedonerror=None):
         self._shell_eof_token = eoftoken
         self._shell_input_line = s
         self._added_newline = False
@@ -232,6 +233,7 @@ class tokenizer(object):
         self._positions = []
 
         self._strictmode = strictmode
+        self._proceedonerror = proceedonerror
 
         # hack: the tokenizer needs access to the stack of redirection
         # nodes when it reads heredocs. this instance is shared between
@@ -391,7 +393,7 @@ class tokenizer(object):
     def _readtokenword(self, c):
         d = {}
         d['all_digit_token'] = c.isdigit()
-        d['dollar_present'] = d['quoted'] = d['pass_next_character'] = d['compound_assignment'] = False
+        d['dollar_present'] = d['quoted'] = d['pass_next_character'] = d['compound_assignment'] = d['unimplemented'] = False
 
         tokenword = []
 
@@ -467,6 +469,19 @@ class tokenizer(object):
 
             # bashlex/parse.y L4699 ARRAY_VARS
 
+        def handlecompoundassignment():
+            # note: only finds matching parenthesis, so parsing can proceed
+            handled = False
+            if self._proceedonerror:
+                ttok = self._parse_matched_pair(None, '(', ')')
+                if ttok:
+                    tokenword.append(c)
+                    tokenword.extend(ttok)            
+                    d['compound_assignment'] = True
+                    d['unimplemented'] = True
+                    handled = True
+            return handled
+
         def handleescapedchar():
             tokenword.append(c)
             d['all_digit_token'] &= c.isdigit()
@@ -512,6 +527,8 @@ class tokenizer(object):
                 elif _shellexp(c):
                     gotonext = not handleshellexp()
                     # bashlex/parse.y L4699
+                elif c == '(' and handlecompoundassignment():
+                    gotonext = True
                 if not gotonext:
                     if _shellbreak(c):
                         self._ungetc(c)
@@ -573,7 +590,7 @@ class tokenizer(object):
             tokenword.flags.add(wordflags.HASDOLLAR)
         if d['quoted']:
             tokenword.flags.add(wordflags.QUOTED)
-        if d['compound_assignment'] and tokenword[-1] == ')':
+        if d['compound_assignment'] and tokenword.value[-1] == ')':
             tokenword.flags.add(wordflags.COMPASSIGN)
         if self._is_assignment(tokenword.value, bool(self._parserstate & parserflags.COMPASSIGN)):
             tokenword.flags.add(wordflags.ASSIGNMENT)
@@ -581,6 +598,10 @@ class tokenizer(object):
                 tokenword.flags.add(wordflags.NOSPLIT)
                 if self._parserstate & parserflags.COMPASSIGN:
                     tokenword.flags.add(wordflags.NOGLOB)
+        if d['compound_assignment']:
+            tokenword.flags.add(wordflags.ASSIGNARRAY)
+        if d['unimplemented']:
+            tokenword.flags.add(wordflags.UNIMPLEMENTED)
 
         # bashlex/parse.y L4865
         if self._command_token_position(self._last_read_token):

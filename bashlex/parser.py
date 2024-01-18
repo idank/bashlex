@@ -173,6 +173,8 @@ def p_simple_command_element(p):
     # change the word node to an assignment if necessary
     if p.slice[1].ttype == tokenizer.tokentype.ASSIGNMENT_WORD:
         p[0][0].kind = 'assignment'
+        if (p.slice[1].flags & flags.word.UNIMPLEMENTED):
+            p[0][0].kind = 'unimplemented'
 
 def p_redirection_list(p):
     '''redirection_list : redirection
@@ -720,6 +722,7 @@ class _parser(object):
         self.tok = tokenizer.tokenizer(s,
                                        parserstate=self.parserstate,
                                        strictmode=strictmode,
+                                       proceedonerror=proceedonerror,
                                        **tokenizerargs)
 
         self.redirstack = self.tok.redirstack
