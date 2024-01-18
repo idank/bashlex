@@ -378,6 +378,8 @@ def p_elif_clause(p):
     for i in range(1, len(p)):
         if isinstance(p[i], ast.node):
             parts.append(p[i])
+        elif isinstance(p[i], list):
+            parts.extend(p[i])
         else:
             parts.append(ast.node(kind='reservedword', word=p[i], pos=p.lexspan(i)))
     p[0] = parts
