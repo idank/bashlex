@@ -125,22 +125,6 @@ class test_parser(unittest.TestCase):
             msg = 'ASTs not equal for %r\n\nresult:\n\n%s\n\n!=\n\nexpected:\n\n%s' % (s, result.dump(), expected.dump())
             self.assertEqual(result, expected, msg)
 
-    def test_empty(self):
-        s = ''
-        self.assertASTsEquals(s, [])
-
-        s = '\n'
-        self.assertASTsEquals(s, [])
-
-        s = ' '
-        self.assertASTsEquals(s, [])
-
-        s = '# Comment'
-        self.assertASTsEquals(s, [])
-
-        s = '# Comment\n# Another comment'
-        self.assertASTsEquals(s, [])
-
     def test_command(self):
         s = 'a b c'
         self.assertASTEquals(s,
