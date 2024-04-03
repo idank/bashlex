@@ -388,7 +388,8 @@ def p_case_clause(p):
     if len(p) == 2:
         p[0] = [p[1]]
     else:
-        p[0].extend(p[2])
+        p[0] = p[1]
+        p[0].append(p[2])
 
 def p_pattern_list(p):
     '''pattern_list : newline_list pattern RIGHT_PAREN compound_list
