@@ -1241,6 +1241,41 @@ class test_parser(unittest.TestCase):
         )
       )
 
+    def test_case_default_without_semicolon(self):
+      s = """case ${1} in
+        pattern1) echo pattern1;;
+        *) echo pattern2
+      esac"""
+      self.assertASTEquals(s,
+        compoundnode(s,
+          casenode(s,
+            reservedwordnode('case', 'case'),
+            wordnode('${1}', '${1}', [
+              parameternode('1', '${1}'),
+            ]),
+            reservedwordnode('in', 'in'),
+            compoundnode('pattern1) echo pattern1',
+              patternnode('pattern1', wordnode('pattern1', 'pattern1')),
+              reservedwordnode(')', ')'),
+              commandnode('echo pattern1',
+                wordnode('echo', 'echo'),
+                wordnode('pattern1', 'pattern1'),
+              ),
+            ),
+            reservedwordnode(';;', ';;'),
+            compoundnode('*) echo pattern2',
+              patternnode('*', wordnode('*', '*')),
+              reservedwordnode(')', ')'),
+              commandnode('echo pattern2',
+                wordnode('echo', 'echo'),
+                wordnode('pattern2', 'pattern2'),
+              ),
+            ),
+            reservedwordnode('esac', 'esac'),
+          )
+        )
+      )
+
     def test_unimplemented(self):
       s = 'coproc echo'
       self.assertASTEquals(s,
