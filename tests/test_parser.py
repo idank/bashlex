@@ -91,8 +91,8 @@ def patternnode(s, *parts):
 def functionnode(s, name, body, *parts):
     return ast.node(kind='function', name=name, body=body, parts=list(parts), s=s)
 
-def unimplementednode(s, *parts):
-    return ast.node(kind='unimplemented', parts=list(parts), s=s)
+def unimplementednode(s, *parts, **kwargs):
+    return ast.node(kind='unimplemented', parts=list(parts), s=s, **kwargs)
 
 class test_parser(unittest.TestCase):
 
@@ -1284,4 +1284,15 @@ class test_parser(unittest.TestCase):
                   wordnode('echo', 'echo')),
               proceedonerror=True)
       with self.assertRaises(NotImplementedError):
+          parse(s, proceedonerror=False)
+          
+    def test_array_assignemnt(self):
+      s = "num1=2 arr=(1 2 3) num2=3"
+      self.assertASTEquals(s,
+              commandnode(s,
+                  assignmentnode('num1=2', 'num1=2'),
+                  unimplementednode('arr=(1 2 3)', word='arr=(1 2 3)'),
+                  assignmentnode('num2=3', 'num2=3')),
+              proceedonerror=True)
+      with self.assertRaises(errors.ParsingError):
           parse(s, proceedonerror=False)
