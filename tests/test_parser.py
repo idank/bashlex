@@ -779,6 +779,23 @@ class test_parser(unittest.TestCase):
                                 "delimited by end-of-file \\(wanted 'EOF'",
                                 parse, s)
 
+    def test_heredoc_singlequotes(self):
+        doc = 'foo\nbar\nEOF'
+        s = '''a <<'EOF'
+%s''' % doc
+
+        self.assertASTEquals(s,
+                commandnode("a <<'EOF'",
+                  wordnode('a'),
+                  redirectnode("<<'EOF'\n%s" % doc, None, '<<', wordnode("'EOF'"),
+                      heredocnode(doc))
+                ))
+
+        s = "a <<'EOF'\nb"
+        self.assertRaisesRegex(errors.ParsingError,
+                                "delimited by end-of-file \\(wanted 'EOF'",
+                                parse, s)
+
     def test_herestring(self):
         s = 'a <<<"b\nc"'
         self.assertASTEquals(s,
