@@ -225,7 +225,9 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
                 node, sindex[0] = _extractprocesssubst(parserobj, string, tindex)
 
                 parts.append(ast.node(kind='processsubstitution', command=node,
-                                      pos=(tindex - 2, sindex[0])))
+                                      pos=(tindex - 2, sindex[0]),
+                                      wordpos=(len(istring),
+                                               len(istring) + sindex[0] - (tindex - 2))))
                 istring += string[tindex - 2:sindex[0]]
                 # goto dollar_add_string
         # TODO
@@ -261,7 +263,8 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
 
                 if i > sindex[0] and expand:
                     node = ast.node(kind='tilde', value=string[sindex[0]:i],
-                                    pos=(sindex[0], i))
+                                    pos=(sindex[0], i),
+                                    wordpos=(len(istring), len(istring) + i - sindex[0]))
                     parts.append(node)
                 istring += string[sindex[0]:i]
                 sindex[0] = i
@@ -270,6 +273,7 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
             tindex = sindex[0]
             node, sindex[0] = _paramexpand(parserobj, string, sindex[0])
             if node:
+                node.wordpos = (len(istring), len(istring) + sindex[0] - tindex)
                 parts.append(node)
             istring += string[tindex:sindex[0]]
         elif c == '`':
@@ -300,7 +304,8 @@ def _expandwordinternal(parserobj, wordtoken, qheredocument, qdoublequotes, quot
 
                         node = ast.node(kind='commandsubstitution',
                                         command=command,
-                                        pos=(tindex, sindex[0]))
+                                        pos=(tindex, sindex[0]),
+                                        wordpos=(len(istring), len(istring) + sindex[0] - tindex))
                         parts.append(node)
                         istring += string[tindex:sindex[0]]
 
