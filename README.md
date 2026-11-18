@@ -37,9 +37,9 @@ For the most part it's transliterated from C, the major differences are:
                   CommandNode(pos=(21, 29), parts=[
                     WordNode(pos=(21, 25), word='echo'),
                     WordNode(pos=(26, 29), word='foo'),
-                  ]), pos=(19, 30)),
+                  ]), pos=(19, 30), wordpos=(0, 11)),
               ]),
-            ]), pos=(12, 31)),
+            ]), pos=(12, 31), wordpos=(0, 19)),
         ]),
       ]),
     ])

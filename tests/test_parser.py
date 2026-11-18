@@ -15,6 +15,12 @@ def wordnode(word, s=None, parts=None):
         s = word
     if parts is None:
         parts = []
+    # Expansion text is retained verbatim in the expected unquoted word.
+    cursor = 0
+    for part in parts:
+        start = word.index(part.s, cursor)
+        part.wordpos = (start, start + len(part.s))
+        cursor = part.wordpos[1]
     return ast.node(kind='word', word=word, s=s, parts=list(parts))
 
 def assignmentnode(word, s=None, parts=None):
